@@ -13,8 +13,8 @@ then
 fi
 
 # Write environment file location to home folder (used by qrsh users)
-USER_ENV_FILE=$SGE_O_HOME/sge_env_path
-echo $ENV_FILE > $USER_ENV_FILE
+# USER_ENV_FILE=$SGE_O_HOME/sge_env_path
+# echo $ENV_FILE > $USER_ENV_FILE
 
 # Query how many gpus to allocate.
 NGPUS=$(qstat -j $JOB_ID | \
