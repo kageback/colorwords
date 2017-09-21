@@ -13,16 +13,19 @@ then
 fi
 
 # Write environment file location to home folder (used by qrsh users)
-USER_ENV_FILE=$SGE_O_HOME/sge_env_path
-echo $ENV_FILE > $USER_ENV_FILE
+# USER_ENV_FILE=$SGE_O_HOME/sge_env_path
+# echo $ENV_FILE > $USER_ENV_FILE
 
 # Query how many gpus to allocate.
 NGPUS=$(qstat -j $JOB_ID | \
         sed -n "s/hard resource_list:.*gpu=\([[:digit:]]\+\).*/\1/p")
 if [ -z $NGPUS ]
 then
-  echo CUDA_VISIBLE_DEVICES=-1 >> $ENV_FILE
-  echo "No GPU requested! Add -l gpu=1 to your qsub command to request one gpu if you need GPU power."
+  #echo CUDA_VISIBLE_DEVICES=-1 >> $ENV_FILE
+  echo "Warning! GPU locking disabled for this job!"
+  echo "You can still use GPUs BUT you might accedently use one allocated by another user."
+  echo "Add -l gpu=0 if you want to explicitly disable GPUs or -l gpu=1 to request a GPU for exclusive use."
+  echo ""
   exit 0
 fi
 if [ $NGPUS -le 0 ]
