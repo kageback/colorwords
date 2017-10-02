@@ -29,7 +29,7 @@ def start_job(gpu=0, timeout=0):
         cmd = 'qsub -cwd -o gridengine.log -e gridengine.log -b y -l gpu=' + str(gpu) \
               + ' python3 -u ' + self_path + '/gridengine.py --pid ' + str(os.getpid()) + ' --timeout ' + str(timeout)
         try:
-            subprocess.run(cmd.split())
+            subprocess.call(cmd.split())
         except OSError as e:
             print('Failed to run qsub! Continues to run locally instead, i.e. outside grid engine.')
             return
