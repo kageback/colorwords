@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Read input
+echo "Input user name for the new user: "
+read username && \
+echo "Creating new user" $username && \
+# Create user account
+sudo adduser $username && \
+# Add user to GE
+sudo qconf -au $username arusers && \
+## Add storage drive
+sudo mkdir /disk/$username && \
+sudo chown $username /disk/$username/ && \
+sudo ln -s /disk/$username/ /home/$username/storage && \
+# Done
+echo "done!"

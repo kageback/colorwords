@@ -7,7 +7,7 @@ import socket
 
 pool_path = 'pool' + '.' + socket.gethostname()
 
-def start_job(gpu=1, timeout=0):
+def start_job(gpu=0, timeout=0):
     # Check if GPU already assigned
     if 'CUDA_VISIBLE_DEVICES' in os.environ:
         print('CUDA_VISIBLE_DEVICES externally set to ' + os.environ['CUDA_VISIBLE_DEVICES'])

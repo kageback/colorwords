@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Read input
+read -r -p "Which user do you wish to delete? " username
+
+## verify user and intent
+ret=false
+getent passwd $username >/dev/null 2>&1 && ret=true
+if $ret; then
+  
+  # comfirm that this user is the one to remove
+  read -r -p "Are you sure you want to delete the user $username including associated home directory and storage ? [y/N] " response && \
+  response=${response,,}    # tolower
+  if [[ $response =~ ^(yes|y)$ ]]
+  then
+    echo "Removing user " $username
+  else
+    echo "Aborting..."
+    exit 1
+  fi
+
+else
+  echo "Sorry. No user named " $username  "exist on the system. Aborting..."
+  exit 1
+fi
+
+
+## Backup and remove storage
+read -r -p "Backup storage? [y/N] " response && \
+response=${response,,}    # tolower
+if [[ $response =~ ^(yes|y)$ ]]
+then
+  echo "Backing up storage..."
+  sudo tar -cvpzf /disk/user_backup/$username.storage.tar.gz /disk/$username/
+fi
+echo "Removing user storage..."
+sudo rm /home/$username/storage
+sudo rm -r /disk/$username
+
+
+## remove user from GE
+echo "Removing user from GE..."
+sudo qconf -du $username arusers
+sudo qconf -duser $username
+
+
+# remove user from system
+echo "Remove user account from system."
+read -r -p "Backup home folder? [y/N] " response && \
+response=${response,,}    # tolower
+if [[ $response =~ ^(yes|y)$ ]]
+then
+  echo "Backing home and removing user..."
+  sudo deluser --remove-home --backup-to /disk/user_backup/ $username
+else
+ echo "Removing user..."
+  sudo deluser --remove-home $username
+fi
+
+
+# Done
+echo "Done!"
