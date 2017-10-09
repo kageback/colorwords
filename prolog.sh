@@ -45,6 +45,7 @@ do
   lockfile=/tmp/lock-gpu$device_id
   if mkdir $lockfile
   then
+    mkdir $lockfile/allocated_by_job_id_$JOB_ID
     SGE_GPU="$SGE_GPU $device_id"
     i=$(expr $i + 1)
     if [ $i -ge $NGPUS ]

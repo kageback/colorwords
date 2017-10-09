@@ -21,7 +21,7 @@ do
   lockfile=/tmp/lock-gpu$device_id
   if [ -d $lockfile ]
   then
-    rmdir $lockfile
+    rm -r $lockfile
   fi
 done
 exit 0
