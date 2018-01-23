@@ -22,12 +22,16 @@ class WCSColorData:
     def batch(self, batch_size = 10):
         batch = self.data.sample(n=batch_size, replace=True)
 
-        return np.array(batch['#cnum'].index), batch[['L*','a*','b*']].values
+        return np.array(batch.index), batch[['L*','a*','b*']].values
 
 
     def all_colors(self):
         return np.array(self.data.index), np.array(self.data['#cnum']), self.data[['L*','a*','b*']].values
 
+    def code2color(self,color_codes):
+        rows = self.data.loc[color_codes.data]
+
+        return rows[['L*','a*','b*']].values
 
     def print(self, f=print_cnum, pad=3):
         # print x axsis

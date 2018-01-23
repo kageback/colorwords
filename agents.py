@@ -6,6 +6,7 @@ class BasicAgent(nn.Module):
 
     def __init__(self, msg_dim, hidden_dim, color_dim, perception_dim):
         super().__init__()
+        self.msg_dim = msg_dim
 
         # Receiving part
         self.msg_receiver = nn.Embedding(msg_dim, hidden_dim)

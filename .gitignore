@@ -1,6 +1,8 @@
 # my stuff
 .idea/
 data/
+fig/
+python3*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
