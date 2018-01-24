@@ -2,6 +2,7 @@
 .idea/
 data/
 fig/
+jobs/
 python3*
 
 # Byte-compiled / optimized / DLL files

@@ -3,8 +3,8 @@ import run_exp
 
 num_words_min = 3
 num_words_max = 11
-avg_over = 5
-max_epochs = 10000
+avg_over = 20
+max_epochs = 5000
 
 msg_dim_range = range(num_words_min,num_words_max+1)
 regier_costs = [0] * len(msg_dim_range)

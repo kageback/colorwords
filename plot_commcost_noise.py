@@ -20,7 +20,6 @@ import pprint
 pprint.pprint(locals())
 
 msg_dim_range = range(num_words_min,num_words_max+1)
-#regier_costs = [[0] * len(msg_dim_range)] * len(noise_range)
 regier_costs = []
 for noise_i, noise in zip(range(len(noise_range)), noise_range):
     print('noise index ', noise_i + 1, ' of ', len(noise_range), 'noise level', noise )
