@@ -3,6 +3,7 @@
 data/
 fig/
 jobs/
+save/
 python3*
 
 # Byte-compiled / optimized / DLL files
