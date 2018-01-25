@@ -185,11 +185,10 @@ def sim_numpy(color_x, color_y, c=0.001):
 
 def main(args,
          perception_dim=3,
-         limit_colors=0,
          reward_func='regier_reward',
          print_wcs_cnum_map=False):
 
-    data = wcs.WCSColorData(limit_colors=limit_colors)
+    data = wcs.WCSColorData()
 
     if print_wcs_cnum_map:
         data.print(lambda t: str(t['#cnum'].values[0]), pad=4)

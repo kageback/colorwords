@@ -8,13 +8,8 @@ def print_cnum(t):
 class WCSColorData:
 
 
-    def __init__(self, wcs_path = 'data/', limit_colors=0):
+    def __init__(self, wcs_path = 'data/'):
         self.data = pd.read_csv(wcs_path + 'cnum-vhcm-lab-new.txt', sep='\t')
-
-        if limit_colors > 0:
-            # make problem easier by limiting the number of color cards used
-            sample = self.data.sample(n=limit_colors)
-            self.data = sample.reset_index()
 
         self.color_dim = len(self.data)
 
