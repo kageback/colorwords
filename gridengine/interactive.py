@@ -26,8 +26,8 @@ def start_job(gpu=0, timeout=0):
     # Start new grid engine job using qsub
     if start_new_job:
         self_path = os.path.dirname(os.path.realpath(__file__))
-        cmd = 'qsub -cwd -o gridengine.log -e gridengine.log -b y -l gpu=' + str(gpu) \
-              + ' python3 -u ' + self_path + '/gridengine.py --pid ' + str(os.getpid()) + ' --timeout ' + str(timeout)
+        cmd = 'qsub -cwd -o interactive.log -e interactive.log -b y -l gpu=' + str(gpu) \
+              + ' python3 -u ' + self_path + '/interactive.py --pid ' + str(os.getpid()) + ' --timeout ' + str(timeout)
         try:
             subprocess.call(cmd.split())
         except OSError as e:
@@ -39,10 +39,10 @@ def start_job(gpu=0, timeout=0):
     while not os.path.isfile(envfile):
         time.sleep(1)
 
-    load_env(envfile)
+    _load_env(envfile)
     os.remove(envfile)
 
-def load_env(envfile):
+def _load_env(envfile):
     file = open(envfile, 'r')
     os.environ['CUDA_VISIBLE_DEVICES'] = file.readline()
     print('CUDA_VISIBLE_DEVICES set to ' + os.environ['CUDA_VISIBLE_DEVICES'])
@@ -50,13 +50,13 @@ def load_env(envfile):
 
 # ============ Code below is run by grid engine job (queue job) ====================
 
-def save_env(envfile):
+def _save_env(envfile):
     file = open(envfile, 'w')
     file.write(os.environ.get('CUDA_VISIBLE_DEVICES', '-1'))
     file.close()
 
 
-def exit_gracefully(signum, frame):
+def _exit_gracefully(signum, frame):
     print('Queue job received external termination signal (maybe from qdel).')
 
     if state == 'running':
@@ -79,10 +79,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     envfile = '.env.' + str(args.pid) + '.' + socket.gethostname()
-    save_env(envfile)
+    _save_env(envfile)
 
-    signal.signal(signal.SIGINT, exit_gracefully)
-    signal.signal(signal.SIGTERM, exit_gracefully)
+    signal.signal(signal.SIGINT, _exit_gracefully)
+    signal.signal(signal.SIGTERM, _exit_gracefully)
 
     state = 'running'
     print(state)
@@ -107,7 +107,7 @@ if __name__ == "__main__":
                 os.remove(pool_path)
                 args.pid = int(pid)
                 envfile = '.env.' + str(args.pid) + '.' + socket.gethostname()
-                save_env(envfile)
+                _save_env(envfile)
                 state = 'running'
                 print(state)
             elif (time.time()-pool_start_time) > args.timeout:
