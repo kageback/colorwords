@@ -97,30 +97,24 @@ def communicative_cost(color_guess, color_codes):
     return cost, perplexity
 
 
-def main(
+def main(args,
     perception_dim=3,
     limit_colors=0,
-    msg_dim=11,
-    noise_level=0,  # 30
     hidden_dim=20,
     batch_size=100,
     start_tau=1,
-    max_epochs=10000,
     reward_func='regier_reward',
-    eval=True):
-
-
-
+    eval=False):
 
     data = wcs.WCSColorData(limit_colors=limit_colors)
     if eval:
         data.print(lambda t: str(t['#cnum'].values[0]),pad=4)
 
-    a = agents.BasicAgent(msg_dim, hidden_dim, data.color_dim, perception_dim).cuda()
+    a = agents.BasicAgent(args.msg_dim, hidden_dim, data.color_dim, perception_dim).cuda()
     optimizer = optim.Adam(a.parameters())
     criterion_receiver = torch.nn.CrossEntropyLoss()
     sumrev = 0
-    for i in range(1,max_epochs):
+    for i in range(1,args.max_epochs):
         optimizer.zero_grad()
 
         color_codes, colors = data.batch(batch_size=batch_size)
@@ -128,7 +122,7 @@ def main(
         colors = th.float_var(colors)
 
         noise = th.float_var(Normal(torch.zeros(batch_size, perception_dim),
-                                    torch.ones(batch_size, perception_dim) * noise_level).sample())
+                                    torch.ones(batch_size, perception_dim) * args.noise_level).sample())
         colors = colors + noise
 
         tau = start_tau/(i)
@@ -166,5 +160,27 @@ def main(
 
     return regier_cost(a, data)
 
+
 if __name__ == "__main__":
-    main()
+    import pickle
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Agents learning to communicate color')
+    parser.add_argument('--save_path', type=str, default='save',
+                        help='path for saving logs and results')
+    parser.add_argument('--exp_name', type=str, default='dev',
+                        help='path for saving logs and results')
+    parser.add_argument('--msg_dim', type=int, default=3,
+                        help='Number of color words')
+    parser.add_argument('--max_epochs', type=int, default=100,
+                        help='Number of training epochs')
+    parser.add_argument('--noise_level', type=int, default=0,
+                        help='How much noise to add to the color chips')
+    args = parser.parse_args()
+    print(args)
+
+    res = {}
+    res['regier_cost'] = main(args)
+    with open(args.save_path + '/' + args.exp_name + '.result.pkl', 'wb') as f:
+        pickle.dump(res, f)
+
