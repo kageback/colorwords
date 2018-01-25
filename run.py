@@ -14,10 +14,10 @@ num_words_max = 4
 
 args = {}
 args['script'] = 'model.py'
-args['max_epochs'] = 1000 #10000
+args['max_epochs'] = 100 #10000
 
-args['noise_range'] = [0, 25]#,50,100]
-args['avg_over'] = 1
+args['noise_range'] = [0, 25]#, 50, 100]
+args['avg_over'] = 2
 args['msg_dim_range'] = range(num_words_min, num_words_max+1)
 
 res = {}
@@ -59,6 +59,6 @@ map_reduce(Mode.REDUCE, task_queue)
 
 
 res_path = job.job_dir + '/result.pkl'
-print('save result as', res_path)
+print('saving result as', res_path)
 with open(res_path, 'wb') as f:
     pickle.dump(res, f)

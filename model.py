@@ -21,6 +21,7 @@ def regier_reward(data, color, color_guess):
     color_guess = th.float_var(data.code2color(color_code_guess), args.cuda)
     return sim(color, color_guess)
 
+
 def regier_cost(a, data):
 
     color_codes, cnums, colors = data.all_colors()
@@ -29,8 +30,6 @@ def regier_cost(a, data):
 
     probs = a(perception=colors)
     _, w_map = probs.max(1)
-
-
 
     s = th.float_var(torch.zeros(len(color_codes)), args.cuda)
     for t_color_code, t_cnum, t_color in zip(color_codes, cnums, colors):
@@ -41,12 +40,11 @@ def regier_cost(a, data):
     l = th.float_var(torch.zeros(len(color_codes)), args.cuda)
     for t_color_code, t_cnum, t_color in zip(color_codes, cnums, colors):
         w = w_map[t_color_code]
-        #cat_colors = th.float_var(data.code2color(color_codes[w_map == w]))
-
         l[t_color_code.data[0]] = s[t_color_code.data[0]] / s[color_codes[w_map == w]].sum().data[0]
 
     E = -np.log2(l.data.cpu().numpy()).mean()
     return E
+
 
 def sim(color_x, color_y, c = 0.001):
     # Regier similarity
