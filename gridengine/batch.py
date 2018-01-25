@@ -34,7 +34,7 @@ class Job:
     def run_python_script(self, script_path, interpreter='python3', interpreter_args='-u', ge_cwd=True, ge_gpu=0, ge_aux_args='', **kwargs):
         self.last_task_id += 1
         task_name = get_task_name(self.last_task_id)
-        ge_args = '-b y' + \
+        ge_args = '-b y' + ' -N ' + self.job_id + '.' + str(self.last_task_id) + \
                   ' -o ' + self.job_dir + '/' + task_name + '.log' + \
                   ' -e ' + self.job_dir + '/' + task_name + '.error' + \
                   ge_aux_args
