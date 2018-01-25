@@ -10,14 +10,14 @@ class Mode(Enum):
 
 
 num_words_min = 3
-num_words_max = 11
+num_words_max = 4
 
 args = {}
 args['script'] = 'model.py'
-args['max_epochs'] = 10000 #10000
+args['max_epochs'] = 1000 #10000
 
-args['noise_range'] = [0, 25,50,100]
-args['avg_over'] = 20
+args['noise_range'] = [0, 25]#,50,100]
+args['avg_over'] = 1
 args['msg_dim_range'] = range(num_words_min, num_words_max+1)
 
 res = {}
@@ -30,7 +30,7 @@ def map_reduce(mode, task_queue):
             for i, dim in zip(range(len(args['msg_dim_range'])), args['msg_dim_range']):
 
                 if mode == Mode.MAP:
-                    taskid = job.run_python_script(args['script'], ge_gpu=1, msg_dim=dim,
+                    taskid = job.run_python_script(args['script'], ge_gpu=0, msg_dim=dim,
                                           max_epochs=args['max_epochs'], noise_level=noise)
                     task_queue.append(taskid)
 
