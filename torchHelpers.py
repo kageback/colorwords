@@ -2,15 +2,16 @@ import torch
 from torch.autograd import Variable
 
 
-def long_var(tensor, cuda):
-    var = Variable(torch.LongTensor(tensor))
-    if cuda:
-        var = var.cuda()
-    return var
+def long_var(tensor, use_cuda=False):
+    return cuda(Variable(torch.LongTensor(tensor)), use_cuda)
 
 
-def float_var(tensor, cuda):
-    var = Variable(torch.FloatTensor(tensor))
-    if cuda:
-        var = var.cuda()
-    return var
+def float_var(tensor, use_cuda=False):
+    return cuda(Variable(torch.FloatTensor(tensor)), use_cuda)
+
+
+def cuda(var, use_cuda):
+    if use_cuda:
+        return var.cuda()
+    else:
+        return var

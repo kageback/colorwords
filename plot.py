@@ -8,8 +8,12 @@ import matplotlib.pyplot as plt
 job_id = 'job.11'
 
 job_path = 'jobs/' + job_id
+res_path = job_path +'/result.pkl'
 
-with open(job_path +'/result.pkl', 'rb') as f:
+#debug
+res_path = 'save/dev.result.pkl'
+
+with open(res_path, 'rb') as f:
     result = pickle.load(f)
 
 regier_costs= result['regier_costs']
