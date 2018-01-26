@@ -4,6 +4,7 @@ data/
 fig/
 jobs/
 save/
+old/
 python3*
 
 # Byte-compiled / optimized / DLL files

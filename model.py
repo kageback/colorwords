@@ -144,26 +144,22 @@ def main(args,
 
         # printing status and periodic evaluation
         sumrev += reward.sum()
-
         if args.print_interval != 0 and (i % args.print_interval == 0):
-            V = color_graph_V(a)
-            print("Loss sender %f Loss receiver %f Naive perplexity %f Average reward %f Min k-cut cost %f Regier_commcost %f" %
+            print("Loss sender %f Loss receiver %f Naive perplexity %f Average reward %f" %
                   (loss_sender,
                    loss_receiver,
-                   torch.exp(loss_receiver), sumrev / (args.print_interval*args.batch_size),
-                   wcs.min_k_cut_cost(V, a.msg_dim),
-                   wcs.communication_cost_regier(V,sum_over_whole_s=False))
+                   torch.exp(loss_receiver), sumrev / (args.print_interval*args.batch_size))
                   )
             sumrev = 0
 
-            #debug
-            #cut = min_k_cut_cost(color_graph_V(a), a.msg_dim)
-            #r2 = communication_cost_regier(color_graph_V(a))
-            #r_old = regier_cost(a)
 
         if args.periodic_evaluation != 0 and (i % args.periodic_evaluation == 0):
             evaluate(a)
-            #print('Regier cost: %f' % (regier_cost(a)))
+            V = color_graph_V(a)
+            print("Min k-cut cost %f Regier_commcost %f" %
+                  (wcs.min_k_cut_cost(V, a.msg_dim),
+                   wcs.communication_cost_regier(V))
+                  )
 
     return color_graph_V(a)
 
@@ -183,7 +179,7 @@ if __name__ == "__main__":
                         help='path for saving logs and results')
     parser.add_argument('--msg_dim', type=int, default=11,
                         help='Number of color words')
-    parser.add_argument('--max_epochs', type=int, default=10000,
+    parser.add_argument('--max_epochs', type=int, default=1000,
                         help='Number of training epochs')
     parser.add_argument('--noise_level', type=int, default=0,
                         help='How much noise to add to the color chips')
@@ -193,7 +189,7 @@ if __name__ == "__main__":
                         help='Number of epochs to run in parallel before updating parameters')
     parser.add_argument('--sender_loss_multiplier', type=int, default=100,
                         help='Mixing factor when mixing the sender with the receiver part of the objective')
-    parser.add_argument('--print_interval', type=int, default=5000,
+    parser.add_argument('--print_interval', type=int, default=1000,
                         help='How often to print training state.  Set 0 for no printing')
     parser.add_argument('--periodic_evaluation', type=int, default=0,
                         help='How often to perform periodic evaluation. Set 0 for no periodic evaluation.')
@@ -209,8 +205,8 @@ if __name__ == "__main__":
     res['V'] = main(args)
 
     # Extras: As these are compact and takes some computing I will add them to the result even though they can be computed later based on V
-    res['regier_cost'] = wcs.communication_cost_regier(res['V'])
-    res['regier_cost'] = wcs.min_k_cut_cost(res['V'], res['args'].msg_dim)
+    # res['regier_cost'] = wcs.communication_cost_regier(res['V'])
+    # res['min_k_cut_cost'] = wcs.min_k_cut_cost(res['V'], res['args'].msg_dim)
     # ==========
 
     with open(args.save_path + '/' + args.exp_name + '.result.pkl', 'wb') as f:

@@ -26,7 +26,7 @@ def chip_index2CIELAB(color_codes):
 
 
 # Evaluation metrics
-def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False):
+def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False, weight_by_size=True):
 
     s = {}
     for i in V.keys():
@@ -39,10 +39,15 @@ def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False):
     l = {}
     for t in V.keys():
         z = 0
+        cat_size = 0
         for i in V.keys():
+
             if sum_over_whole_s or V[i]['word'] == V[t]['word']:
                 z += s[i]
+                cat_size += 1
         l[t] = s[t]/z
+        if weight_by_size:
+            l[t] *= cat_size/len(V)
 
     if norm_over_s:
         l_z=0
@@ -50,7 +55,8 @@ def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False):
             l_z += x
         for i in l.keys():
             l[i] /= l_z
-    #debug
+
+    # debug code to check it l sums to one
     #l_z=0
     #for x in l.values():
     #    l_z += x
