@@ -31,23 +31,23 @@ def basic_reward(color_codes, color_guess):
     return reward
 
 
-def regier_reward(data, color, color_guess):
+def regier_reward(color, color_guess):
     _, color_code_guess = color_guess.max(1)
-    color_guess = th.float_var(data.code2color(color_code_guess), args.cuda)
+    color_guess = th.float_var(wcs.chip_index2CIELAB(color_code_guess), args.cuda)
     return sim(color, color_guess)
 
 
 # Evaluation
 
-def evaluate(a, data):
-    color_codes, cnum, colors = data.all_colors()
+def evaluate(a):
+    color_codes, cnum, colors = wcs.all_colors()
     colors = th.float_var(colors, args.cuda)
     color_codes = th.long_var(color_codes, args.cuda)
 
     probs = a(perception=colors)
     _, msg = probs.max(1)
 
-    data.print(lambda t: str(
+    wcs.print_color_map(lambda t: str(
         msg[
             np.where(
                 cnum == t['#cnum'].values[0]
@@ -80,34 +80,10 @@ def uninformed_commcost(color_guess, color_codes):
     return cost, perplexity
 
 
-def regier_cost(a, data):
-    print('Deprecated')
-    color_codes, cnums, colors = data.all_colors()
-    colors = th.float_var(colors, args.cuda)
-    color_codes = th.long_var(color_codes, args.cuda)
-
-    probs = a(perception=colors)
-    _, w_map = probs.max(1)
-
-    s = th.float_var(torch.zeros(len(color_codes)), args.cuda)
-    for t_color_code, t_cnum, t_color in zip(color_codes, cnums, colors):
-        w = w_map[t_color_code]
-        cat_colors = th.float_var(data.code2color(color_codes[w_map == w]), args.cuda)
-        s[t_color_code.data[0]] = sim(t_color, cat_colors).sum().data[0]
-
-    l = th.float_var(torch.zeros(len(color_codes)), args.cuda)
-    for t_color_code, t_cnum, t_color in zip(color_codes, cnums, colors):
-        w = w_map[t_color_code]
-        l[t_color_code.data[0]] = s[t_color_code.data[0]] / s[color_codes[w_map == w]].sum().data[0]
-
-    E = -np.log2(l.data.cpu().numpy()).mean()
-    return E
-
-
-def color_graph_V(a, data, to_numpy=True):
+def color_graph_V(a, to_numpy=True):
     V = {}
 
-    color_codes, cnums, colors = data.all_colors()
+    color_codes, cnums, colors = wcs.all_colors()
     colors = th.float_var(colors, args.cuda)
     color_codes = th.long_var(color_codes, args.cuda)
 
@@ -188,12 +164,10 @@ def main(args,
          reward_func='regier_reward',
          print_wcs_cnum_map=False):
 
-    data = wcs.WCSColorData()
-
     if print_wcs_cnum_map:
-        data.print(lambda t: str(t['#cnum'].values[0]), pad=4)
+        data.print_color_map(lambda t: str(t['#cnum'].values[0]), pad=4)
 
-    a = th.cuda(agents.BasicAgent(args.msg_dim, args.hidden_dim, data.color_dim, perception_dim), args.cuda)
+    a = th.cuda(agents.BasicAgent(args.msg_dim, args.hidden_dim, wcs.color_dim(), perception_dim), args.cuda)
 
     optimizer = optim.Adam(a.parameters())
     criterion_receiver = torch.nn.CrossEntropyLoss()
@@ -202,7 +176,7 @@ def main(args,
     for i in range(args.max_epochs):
         optimizer.zero_grad()
 
-        color_codes, colors = data.batch(batch_size=args.batch_size)
+        color_codes, colors = wcs.batch(batch_size=args.batch_size)
         color_codes = th.long_var(color_codes, args.cuda)
         colors = th.float_var(colors, args.cuda)
 
@@ -221,7 +195,7 @@ def main(args,
         if reward_func == 'basic_reward':
             reward = basic_reward(color_codes, color_guess)
         elif reward_func == 'regier_reward':
-            reward = regier_reward(data, colors, color_guess)
+            reward = regier_reward( colors, color_guess)
 
         loss_sender = args.sender_loss_multiplier * ((-m.log_prob(msg) * reward).sum()/args.batch_size)
 
@@ -238,20 +212,20 @@ def main(args,
                   (loss_sender,
                    loss_receiver,
                    torch.exp(loss_receiver), sumrev / (args.print_interval*args.batch_size),
-                   min_k_cut_cost(color_graph_V(a, data), a.msg_dim))
+                   min_k_cut_cost(color_graph_V(a), a.msg_dim))
                   )
             sumrev = 0
 
             #debug
-            #cut = min_k_cut_cost(color_graph_V(a, data), a.msg_dim)
-            #r2 = communication_cost_regier(color_graph_V(a, data))
-            #r_old = regier_cost(a, data)
+            #cut = min_k_cut_cost(color_graph_V(a), a.msg_dim)
+            #r2 = communication_cost_regier(color_graph_V(a))
+            #r_old = regier_cost(a)
 
         if args.periodic_evaluation != 0 and (i % args.periodic_evaluation == 0):
-            evaluate(a, data)
-            #print('Regier cost: %f' % (regier_cost(a, data)))
+            evaluate(a)
+            #print('Regier cost: %f' % (regier_cost(a)))
 
-    return color_graph_V(a, data)
+    return color_graph_V(a)
 
 
 # Script entry point
