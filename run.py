@@ -10,14 +10,14 @@ class Mode(Enum):
 
 
 num_words_min = 3
-num_words_max = 4
+num_words_max = 11
 
 args = {}
 args['script'] = 'model.py'
-args['max_epochs'] = 100 #10000
+args['max_epochs'] = 10000 #10000
 
-args['noise_range'] = [0, 25]#, 50, 100]
-args['avg_over'] = 2
+args['noise_range'] = [0, 25, 50, 100]
+args['avg_over'] = 20
 args['msg_dim_range'] = range(num_words_min, num_words_max+1)
 
 res = {}

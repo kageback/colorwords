@@ -33,16 +33,15 @@ def basic_reward(color_codes, color_guess):
 
 def regier_reward(color, color_guess):
     _, color_code_guess = color_guess.max(1)
-    color_guess = th.float_var(wcs.chip_index2CIELAB(color_code_guess), args.cuda)
+    color_guess = th.float_var(wcs.chip_index2CIELAB(color_code_guess.data), args.cuda)
     return sim(color, color_guess)
 
 
 # Evaluation
 
 def evaluate(a):
-    color_codes, cnum, colors = wcs.all_colors()
+    chip_indices, colors = wcs.all_colors()
     colors = th.float_var(colors, args.cuda)
-    color_codes = th.long_var(color_codes, args.cuda)
 
     probs = a(perception=colors)
     _, msg = probs.max(1)
@@ -50,7 +49,7 @@ def evaluate(a):
     wcs.print_color_map(lambda t: str(
         msg[
             np.where(
-                cnum == t['#cnum'].values[0]
+                chip_indices == t.index.values[0]
             )[0][0]
         ].cpu().data.numpy()[0]
     ), pad=2)
@@ -59,14 +58,14 @@ def evaluate(a):
     print('word usage count', [(msg == w).sum().cpu().data.numpy()[0] for w in range(a.msg_dim)], 'num of words used', nwords)
 
     color_guess = a(msg=msg)
-    cost, perplexity = uninformed_commcost(color_guess, color_codes)
+    cost, perplexity = uninformed_commcost_log2(color_guess, th.long_var(chip_indices, args.cuda))
     print("comcost: %f Perplexity %f" % (cost, perplexity))
 
 
-def uninformed_commcost(color_guess, color_codes):
-    y = F.softmax(color_guess, dim=1)
+def uninformed_commcost_log2(chip_index_guess, chip_indices):
+    y = F.softmax(chip_index_guess, dim=1)
     ny = y.cpu().data.numpy()
-    nlabes = color_codes.data.cpu().numpy()
+    nlabes = chip_indices.data.cpu().numpy()
 
     cost = 0
     perplexity = 0
@@ -80,81 +79,20 @@ def uninformed_commcost(color_guess, color_codes):
     return cost, perplexity
 
 
-def color_graph_V(a, to_numpy=True):
+def color_graph_V(a):
     V = {}
 
-    color_codes, cnums, colors = wcs.all_colors()
+    chip_indices, colors = wcs.all_colors()
     colors = th.float_var(colors, args.cuda)
-    color_codes = th.long_var(color_codes, args.cuda)
+    #chip_indices = th.long_var(chip_indices, args.cuda)
 
     probs = a(perception=colors)
     _, words = probs.max(1)
 
-    for color_code, cnum, color in zip(color_codes, cnums, colors):
-        if to_numpy:
-            V[cnum] = {'word': words[color_code].cpu().data[0],
-                       'CIELAB_color': color.cpu().data.numpy()}
-        else:
-            V[cnum] = {'word': words[color_code], 'CIELAB_color': color}
+    for chip_index in chip_indices:
+        V[chip_index] = {'word': words[chip_index].cpu().data[0]}
 
     return V
-
-
-def communication_cost_regier(V, sum_over_whole_s=False):
-
-    s = {}
-    for i in V.keys():
-        s[i] = 0
-        for j in V.keys():
-            if V[i]['word'] == V[j]['word']:
-                s[i] += sim_numpy(V[i]['CIELAB_color'], V[j]['CIELAB_color'])
-
-
-    l = {}
-    for t in V.keys():
-        z = 0
-        for i in V.keys():
-            if sum_over_whole_s or V[i]['word'] == V[t]['word']:
-                z += s[i]
-        l[t] = s[t]/z
-
-    E = 0
-    for t in V.keys():
-        E += -np.log2(l[t])
-    E = E / len(V)
-
-    return E
-
-def xrange(start,stop):
-    return range(start,stop+1)
-
-def min_k_cut_cost(V,k):
-
-    C = {}
-    for i in xrange(1, k):
-        C[i] = []
-
-    for cnum in V.keys():
-        C[ V[cnum]['word']+1 ].append(cnum)
-
-    cost = 0
-    for i in xrange(1, k-1):
-        for j in xrange(i+1, k):
-            for v1 in C[i]:
-                for v2 in C[j]:
-                    cost += sim_numpy(V[v1]['CIELAB_color'], V[v2]['CIELAB_color'])
-    return cost
-
-
-
-def sim_numpy(color_x, color_y, c=0.001):
-
-    # CIELAB distance 76 (euclidean distance)
-    d = np.linalg.norm(color_x - color_y, 2)
-
-    # Regier color similarity
-    return np.exp(-c * np.power(d, 2))
-
 
 
 # Model training loop
@@ -165,7 +103,7 @@ def main(args,
          print_wcs_cnum_map=False):
 
     if print_wcs_cnum_map:
-        data.print_color_map(lambda t: str(t['#cnum'].values[0]), pad=4)
+        wcs.print_color_map(lambda t: str(t['#cnum'].values[0]), pad=4)
 
     a = th.cuda(agents.BasicAgent(args.msg_dim, args.hidden_dim, wcs.color_dim(), perception_dim), args.cuda)
 
@@ -207,12 +145,14 @@ def main(args,
         # printing status and periodic evaluation
         sumrev += reward.sum()
 
-        if i % 100 == 0:
-            print("Loss sender %f Loss receiver %f Naive perplexity %f Average reward %f Min k-cut cost %f" %
+        if args.print_interval != 0 and (i % args.print_interval == 0):
+            V = color_graph_V(a)
+            print("Loss sender %f Loss receiver %f Naive perplexity %f Average reward %f Min k-cut cost %f Regier_commcost %f" %
                   (loss_sender,
                    loss_receiver,
                    torch.exp(loss_receiver), sumrev / (args.print_interval*args.batch_size),
-                   min_k_cut_cost(color_graph_V(a), a.msg_dim))
+                   wcs.min_k_cut_cost(V, a.msg_dim),
+                   wcs.communication_cost_regier(V,sum_over_whole_s=False))
                   )
             sumrev = 0
 
@@ -241,11 +181,11 @@ if __name__ == "__main__":
                         help='path for saving logs and results')
     parser.add_argument('--exp_name', type=str, default='dev',
                         help='path for saving logs and results')
-    parser.add_argument('--msg_dim', type=int, default=2,
+    parser.add_argument('--msg_dim', type=int, default=11,
                         help='Number of color words')
     parser.add_argument('--max_epochs', type=int, default=10000,
                         help='Number of training epochs')
-    parser.add_argument('--noise_level', type=int, default=5,
+    parser.add_argument('--noise_level', type=int, default=0,
                         help='How much noise to add to the color chips')
     parser.add_argument('--hidden_dim', type=int, default=20,
                         help='size of hidden representation')
@@ -253,9 +193,9 @@ if __name__ == "__main__":
                         help='Number of epochs to run in parallel before updating parameters')
     parser.add_argument('--sender_loss_multiplier', type=int, default=100,
                         help='Mixing factor when mixing the sender with the receiver part of the objective')
-    parser.add_argument('--print_interval', type=int, default=200,
-                        help='How often to print training state')
-    parser.add_argument('--periodic_evaluation', type=int, default=500,
+    parser.add_argument('--print_interval', type=int, default=5000,
+                        help='How often to print training state.  Set 0 for no printing')
+    parser.add_argument('--periodic_evaluation', type=int, default=0,
                         help='How often to perform periodic evaluation. Set 0 for no periodic evaluation.')
 
     args = parser.parse_args()
@@ -265,8 +205,13 @@ if __name__ == "__main__":
     args.cuda = torch.cuda.is_available()
 
     res = {}
+    res['args'] = args
     res['V'] = main(args)
-    res['regier_cost'] = communication_cost_regier(res['V'])
+
+    # Extras: As these are compact and takes some computing I will add them to the result even though they can be computed later based on V
+    res['regier_cost'] = wcs.communication_cost_regier(res['V'])
+    res['regier_cost'] = wcs.min_k_cut_cost(res['V'], res['args'].msg_dim)
+    # ==========
 
     with open(args.save_path + '/' + args.exp_name + '.result.pkl', 'wb') as f:
         pickle.dump(res, f)
