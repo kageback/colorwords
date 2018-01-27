@@ -39,6 +39,7 @@ def plot(job):
         for msg_dim_value in msg_dim_values:
             l.append(min_k_cut_cost[(noise_value, msg_dim_value)] / avg_over[(noise_value, msg_dim_value)])
         ax.plot(msg_dim_values, l, label=str(noise_value))
+        print('#words',msg_dim_values, '\nmin k-cut cost', l)
     ax.legend()
 
     fig_name = job.job_dir + '/cutcost.png'
@@ -46,7 +47,7 @@ def plot(job):
 
 
 if __name__ == "__main__":
-    job_id = 'job.4'
+    job_id = 'job.18'
 
     job = ge.Job(job_id=job_id, load_existing_job=True)
     plot(job)

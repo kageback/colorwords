@@ -10,9 +10,9 @@ def main():
 
     args = {}
     args['script'] = 'model.py'
-    args['max_epochs'] = 1000 #10000
-    args['noise_range'] = [0, 25]#, 50, 100]
-    args['avg_over'] = 1
+    args['max_epochs'] = 10000 #10000
+    args['noise_range'] = [0, 25, 50, 100]
+    args['avg_over'] = 10
     args['msg_dim_range'] = range(num_words_min, num_words_max+1)
     job = ge.Job()
     args['job_id'] = job.job_id
