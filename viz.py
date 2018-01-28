@@ -47,7 +47,7 @@ def plot(job):
 
 
 if __name__ == "__main__":
-    job_id = 'job.18'
+    job_id = 'job.3'
 
     job = ge.Job(job_id=job_id, load_existing_job=True)
     plot(job)

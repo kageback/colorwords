@@ -44,7 +44,7 @@ def reduce_job(job):
             V = task_res['V']
 
             # compute error measures
-            inc_dict(regier_cost, (noise_level, msg_dim), wcs.communication_cost_regier(V))  # task_res['regier_cost']
+            inc_dict(regier_cost, (noise_level, msg_dim), wcs.communication_cost_regier(V,weight_by_size=False))  # task_res['regier_cost']
             inc_dict(min_k_cut_cost, (noise_level, msg_dim),
                      wcs.min_k_cut_cost(V, msg_dim))  # task_res['min_k_cut_cost'] or wcs.min_k_cut_cost(V, msg_dim)
             inc_dict(avg_over, (noise_level, msg_dim), 1)
@@ -78,6 +78,6 @@ def reduce_job(job):
 
 
 if __name__ == "__main__":
-    job_id = 'job.4'
+    job_id = 'job.3'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     reduce_job(job)
