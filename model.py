@@ -204,11 +204,6 @@ if __name__ == "__main__":
     res['args'] = args
     res['V'] = main(args)
 
-    # Extras: As these are compact and takes some computing I will add them to the result even though they can be computed later based on V
-    # res['regier_cost'] = wcs.communication_cost_regier(res['V'])
-    # res['min_k_cut_cost'] = wcs.min_k_cut_cost(res['V'], res['args'].msg_dim)
-    # ==========
-
     with open(args.save_path + '/' + args.exp_name + '.result.pkl', 'wb') as f:
         pickle.dump(res, f)
 

@@ -6,8 +6,8 @@ import wcs
 
 
 def map_job(job, args):
-    for noise_i, noise in zip(range(len(args['noise_range'])), args['noise_range']):
-        for avg_i in range(args['avg_over']):
+    for avg_i in range(args['avg_over']):
+        for noise_i, noise in zip(range(len(args['noise_range'])), args['noise_range']):
             for i, dim in zip(range(len(args['msg_dim_range'])), args['msg_dim_range']):
                 job.run_python_script(args['script'],
                                       ge_gpu=0,
@@ -29,7 +29,8 @@ def reduce_job(job):
     msg_dim_values = []
     avg_over = {}
     regier_cost = {}
-    min_k_cut_cost = {}
+    wellformedness = {}
+    combined_criterion = {}
     while True:
         res_path = job.job_dir + '/' + ge.get_task_name(taskid) + '.result.pkl'
         if not os.path.isfile(res_path):
@@ -44,9 +45,9 @@ def reduce_job(job):
             V = task_res['V']
 
             # compute error measures
-            inc_dict(regier_cost, (noise_level, msg_dim), wcs.communication_cost_regier(V,weight_by_size=False))  # task_res['regier_cost']
-            inc_dict(min_k_cut_cost, (noise_level, msg_dim),
-                     wcs.min_k_cut_cost(V, msg_dim))  # task_res['min_k_cut_cost'] or wcs.min_k_cut_cost(V, msg_dim)
+            inc_dict(regier_cost, (noise_level, msg_dim), wcs.communication_cost_regier(V))
+            inc_dict(wellformedness, (noise_level, msg_dim), wcs.wellformedness(V))
+            inc_dict(combined_criterion, (noise_level, msg_dim), wcs.combined_criterion(V))
             inc_dict(avg_over, (noise_level, msg_dim), 1)
 
             # Compile implicit argument ranges for plotting
@@ -68,7 +69,8 @@ def reduce_job(job):
     res['msg_dim_values'] = msg_dim_values
 
     res['regier_cost'] = regier_cost
-    res['min_k_cut_cost'] = min_k_cut_cost
+    res['wellformedness'] = wellformedness
+    res['combined_criterion'] = combined_criterion
     res['avg_over'] = avg_over
 
     res_path = job.job_dir + '/result.pkl'

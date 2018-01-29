@@ -26,7 +26,8 @@ def chip_index2CIELAB(color_codes):
 
 
 # Evaluation metrics
-def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False, weight_by_size=True):
+
+def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False, weight_by_size=False):
 
     s = {}
     for i in V.keys():
@@ -57,9 +58,9 @@ def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False, weig
             l[i] /= l_z
 
     # debug code to check it l sums to one
-    #l_z=0
-    #for x in l.values():
-    #    l_z += x
+    l_z=0
+    for x in l.values():
+        l_z += x
 
     E = 0
     for t in V.keys():
@@ -68,6 +69,48 @@ def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False, weig
 
     return E
 
+
+def wellformedness(V):
+    Sw = 0
+    for i in V.keys():
+        for j in V.keys():
+            if V[i]['word'] == V[j]['word']:
+                Sw += sim(i, j)
+    Da = 0
+    for i in V.keys():
+        for j in V.keys():
+            if V[i]['word'] != V[j]['word']:
+                Da += 1- sim(i, j)
+    W = Sw + Da
+    return W
+
+
+def combined_criterion(V):
+    def inc_dict(dict, key, increment):
+        if key in dict.keys():
+            dict[key] += increment
+        else:
+            dict[key] = increment
+
+
+    cat_sizes = {}
+    for v in V.values():
+        inc_dict(cat_sizes,v['word'],1)
+
+    n = len(cat_sizes)
+
+    cost = 0
+    for w in cat_sizes.keys():
+        cost += cat_sizes[w]*np.log2(cat_sizes[w])/n
+
+    ## CCP part
+    CCP = 0
+    for i in V.keys():
+        for j in V.keys():
+            if V[i]['word'] != V[j]['word']:
+                CCP += 2*sim(i, j)-1
+
+    return cost + CCP
 
 def min_k_cut_cost(V, k):
     def xrange(start, stop):
