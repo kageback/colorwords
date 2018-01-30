@@ -4,8 +4,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import gridengine.batch as ge
 
+import wcs
 
-def plot(job):
+
+def plot_costs(job):
 
     # Load results
     res_path = job.job_dir + '/result.pkl'
@@ -19,7 +21,6 @@ def plot(job):
     wellformedness = res['wellformedness']
     combined_criterion = res['combined_criterion']
     avg_over = res['avg_over']
-
 
     # Plot commcost
     fig, ax = plt.subplots()
@@ -66,8 +67,47 @@ def plot(job):
     plt.savefig(fig_name)
 
 
-if __name__ == "__main__":
-    job_id = 'job.3'
+def plot_colormap(job, taskid, plot_file_name):
+    # Load results
+    res_path = job.job_dir + '/task.' + str(taskid) + '.result.pkl'
+    with open(res_path, 'rb') as f:
+        res = pickle.load(f)
 
+    wcs.plot_with_colors(res['V'], job.job_dir + '/' + plot_file_name + '.png',
+                         y_wcs_range=' ABCDEFGHIJ ', x_wcs_range=range(0, 41),
+                         use_real_color=True, add_boarders_color='w')
+
+
+def plot_task_range(job, start_task, range_name=''):
+
+    num_of_words = range(3, 12)
+
+    for taskid, nwords in zip(range(start_task, start_task + len(num_of_words)), num_of_words):
+
+        plot_file_name = 'fig_colormap_' + range_name + '_' + '_nwords' + str(nwords) + '_' + job.job_id.replace('.', '') + '_task' + str(taskid)
+
+        plot_colormap(job, taskid, plot_file_name)
+
+
+def main():
+    job_id = 'job.16'
     job = ge.Job(job_id=job_id, load_existing_job=True)
-    plot(job)
+    #plot_costs(job)
+
+    # plot color maps
+    # no noise different #words
+    # start_task=0 => noise = 0
+    # start_task=342 => noise = 25
+
+    plot_task_range(job, 0, 'noise0')
+    #plot_task_range(job, 342, 'noise25')
+    #plot_task_range(job, 495,'noise50')
+    #plot_task_range(job, 603,'noise100')
+
+
+
+
+
+if __name__ == "__main__":
+    main()
+

@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.lines as lines
+
 
 wcs_path = 'data/'
 color_chips = pd.read_csv(wcs_path + 'cnum-vhcm-lab-new.txt', sep='\t')
@@ -149,6 +154,9 @@ def sim(chip_index_x, chip_index_y, c=0.001):
 def print_cnum(t):
     return str(t['#cnum'].values[0])
 
+def print_index(t):
+    return str(t.index.values[0])
+
 
 def print_color_map(f=print_cnum, pad=3):
     # print x axsis
@@ -171,6 +179,93 @@ def print_color_map(f=print_cnum, pad=3):
 
             print(s.ljust(pad), end="")
         print('')
+
+# plotting
+def cielab2rgb(c):
+    from colormath.color_objects import LabColor, sRGBColor
+    from colormath.color_conversions import convert_color
+
+    lab = LabColor(c[0],c[1],c[2])
+    rgb = convert_color(lab, sRGBColor)
+
+    return np.array(rgb.get_value_tuple())
+
+
+def plot_with_colors(V, save_to_path='dev.png', y_wcs_range=' ABCDEFGHIJ ', x_wcs_range=range(1, 41), use_real_color=True, add_boarders_color=''):
+    #print_color_map(print_index, 4)
+
+    N_x = len(x_wcs_range)
+    N_y = len(y_wcs_range)
+    # make an empty data set
+    word = np.ones([N_y, N_x])
+    rgb = np.ones([N_y, N_x, 3])
+    for y_alpha, y in zip(list(y_wcs_range), range(N_y)):
+        for x_wcs, x in zip(x_wcs_range, range(N_x)):
+            t = color_chips.loc[(color_chips['H'] == x_wcs) & (color_chips['V'] == y_alpha)]
+            if len(t) == 0:
+                word[y, x] = np.nan
+                rgb[y, x, :] = np.array([1, 1, 1])
+            elif len(t) == 1:
+                word[y, x] = V[t.index.values[0]]['word']
+                rgb[y, x, :] = cielab2rgb(t[['L*', 'a*', 'b*']].values[0])
+            else:
+                raise TabError()
+
+    fig, ax = plt.subplots(1, 1, tight_layout=True)
+
+    if add_boarders_color != '':
+        for y in range(N_y):
+            for x in range(N_x):
+                if not np.isnan(word[y, x]):
+                    if x+1 < N_x and word[y, x] != word[y, x+1]:
+                        ax.add_line(lines.Line2D([x+1, x+1], [N_y - y, N_y - (y+1)], color=add_boarders_color))
+
+                    if (y+1 < N_y and word[y, x] != word[y+1, x]) or y+1 == N_y:
+                            ax.add_line(lines.Line2D([x, x + 1], [N_y - (y + 1), N_y - (y + 1)], color=add_boarders_color))
+
+                    if (y-1 >= 0 and word[y, x] != word[y-1, x]) or y-1 < 0:
+                            ax.add_line(lines.Line2D([x, x + 1], [N_y - (y + 0), N_y - (y + 0)], color=add_boarders_color))
+
+
+    #my_cmap = matplotlib.colors. ListedColormap(['r', 'g', 'b'])
+    my_cmap = plt.get_cmap('Set1')
+    my_cmap.set_bad(color='w', alpha=0)
+
+    data = rgb if use_real_color else word
+    ax.imshow(data, interpolation='none', cmap=my_cmap, extent=[0, N_x, 0, N_y], zorder=0)
+
+    ax.axis('off')
+
+    plt.savefig(save_to_path)
+    plt.close()
+
+    #1*10 + 40*8
+
+    # Example code
+    # fill in some fake data
+    #for j in range(3)[::-1]:
+    #    data[N // 2 - j: N // 2 + j + 1, N // 2 - j: N // 2 + j + 1] = j
+
+    # make a figure + axes
+    #fig, ax = plt.subplots(1, 1, tight_layout=True)
+
+    # make color map
+    #my_cmap = matplotlib.colors.ListedColormap(['r', 'g', 'b'])
+
+    # set the 'bad' values (nan) to be white and transparent
+    #my_cmap.set_bad(color='w', alpha=0)
+
+    # draw the grid
+    #for x in range(N + 1):
+    #    ax.axhline(x, lw=2, color='k', zorder=5)
+    #    ax.axvline(x, lw=2, color='k', zorder=5)
+
+    # draw the boxes
+    #ax.imshow(data, interpolation='none', cmap=my_cmap, extent=[0, N_x, 0, N_y], zorder=0)
+    # turn off the axis labels
+    #ax.axis('off')
+
+    #plt.savefig('test.png')
 
 
 

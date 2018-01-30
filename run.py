@@ -6,7 +6,7 @@ import map_reduce
 
 def main():
     num_words_min = 3
-    num_words_max = 4
+    num_words_max = 11
 
     args = {}
     args['script'] = 'model.py'
@@ -32,7 +32,7 @@ def main():
     map_reduce.reduce_job(job)
 
     print('plot results')
-    viz.plot(job)
+    viz.plot_costs(job)
 
 
 if __name__ == "__main__":
