@@ -1,4 +1,5 @@
 import pickle
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -20,14 +21,16 @@ def plot_costs(job):
     regier_cost = res['regier_cost']
     wellformedness = res['wellformedness']
     combined_criterion = res['combined_criterion']
+    term_usage = res['term_usage']
     avg_over = res['avg_over']
+
 
     # Plot commcost
     fig, ax = plt.subplots()
     for noise_value in noise_values:
         l = []
         for msg_dim_value in msg_dim_values:
-            l.append(regier_cost[(noise_value, msg_dim_value)] / avg_over[(noise_value, msg_dim_value)])
+            l.append(regier_cost[(noise_value, msg_dim_value)]['mean'])
         ax.plot(msg_dim_values, l, label=str(noise_value))
     ax.legend()
     plt.xlabel('Number of color words')
@@ -42,7 +45,7 @@ def plot_costs(job):
     for noise_value in noise_values:
         l = []
         for msg_dim_value in msg_dim_values:
-            l.append(wellformedness[(noise_value, msg_dim_value)] / avg_over[(noise_value, msg_dim_value)])
+            l.append(wellformedness[(noise_value, msg_dim_value)]['mean'])
         ax.plot(msg_dim_values, l, label=str(noise_value))
     ax.legend()
     plt.xlabel('Number of color words')
@@ -57,7 +60,7 @@ def plot_costs(job):
     for noise_value in noise_values:
         l = []
         for msg_dim_value in msg_dim_values:
-            l.append(combined_criterion[(noise_value, msg_dim_value)] / avg_over[(noise_value, msg_dim_value)])
+            l.append(combined_criterion[(noise_value, msg_dim_value)]['mean'])
         ax.plot(msg_dim_values, l, label=str(noise_value))
     ax.legend()
     plt.xlabel('Number of color words')
@@ -67,15 +70,61 @@ def plot_costs(job):
     plt.savefig(fig_name)
 
 
+    # plot term usage
+    fig, ax = plt.subplots()
+    msg_dim_value = 11
+    l = []
+    std_l = []
+    for noise_value in noise_values:
+        #l.append(term_usage[(noise_value, msg_dim_value)] / avg_over[(noise_value, msg_dim_value)])
+        l.append(term_usage[(noise_value, msg_dim_value)]['mean'])
+        std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
+    #ax.bar(noise_values, l, width=10, yerr=std_l, ecolor='k', capsize=5)
+    ax.errorbar(noise_values, l, yerr=std_l, fmt='o', ecolor='g',  capsize=5)
+
+    #ax.legend()
+    plt.xlabel('Noise variance')
+    plt.ylabel('Average number of color terms')
+    plt.xticks([0,25,50,100])
+    plt.ylim([2,10])
+
+    fig_name = job.job_dir + '/fig_color_term_usage_' + str(msg_dim_value) + '.png'
+    plt.savefig(fig_name)
+
+
+    # plot term usage for all #words
+    index = np.arange(len(msg_dim_values))
+    bar_width = 0.35
+    opacity = 0.8
+    fig, ax = plt.subplots()
+    for msg_dim_value, i in zip(msg_dim_values, range(len(msg_dim_values))):
+        l = []
+        std_l = []
+        for noise_value in noise_values:
+            l.append(term_usage[(noise_value, msg_dim_value)]['mean'])
+            std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
+        ax.errorbar(noise_values, l, label=str(msg_dim_value), yerr=std_l, fmt='o',  capsize=5)
+        #ax.bar(noise_values, l, width=10)
+        #plt.bar(noise_values + i*bar_width, l, bar_width,
+        #        alpha=opacity,
+        #        label=str(msg_dim_value))
+    ax.legend()
+    plt.xlabel('Noise variance')
+    plt.ylabel('Average number of color terms')
+    plt.xticks([0, 25, 50, 100])
+    plt.ylim([2, 9])
+
+    fig_name = job.job_dir + '/fig_color_term_usage_all.png'
+    plt.savefig(fig_name)
+
+
 def plot_colormap(job, taskid, plot_file_name):
     # Load results
     res_path = job.job_dir + '/task.' + str(taskid) + '.result.pkl'
     with open(res_path, 'rb') as f:
         res = pickle.load(f)
 
-    wcs.plot_with_colors(res['V'], job.job_dir + '/' + plot_file_name + '.png',
-                         y_wcs_range=' ABCDEFGHIJ ', x_wcs_range=range(0, 41),
-                         use_real_color=True, add_boarders_color='w')
+    wcs.plot_with_colors(res['V'], job.job_dir + '/' + plot_file_name + '.png')
 
 
 def plot_task_range(job, start_task, range_name=''):
@@ -90,19 +139,22 @@ def plot_task_range(job, start_task, range_name=''):
 
 
 def main():
-    job_id = 'job.16'
+    job_id = 'job.2'
     job = ge.Job(job_id=job_id, load_existing_job=True)
-    #plot_costs(job)
+    plot_costs(job)
 
     # plot color maps
+    #plot_colormap(job, 350, 'fig_colormap_dev')
     # no noise different #words
     # start_task=0 => noise = 0
     # start_task=342 => noise = 25
 
-    plot_task_range(job, 0, 'noise0')
+    #plot_task_range(job, 0, 'noise0')
     #plot_task_range(job, 342, 'noise25')
     #plot_task_range(job, 495,'noise50')
     #plot_task_range(job, 603,'noise100')
+
+
 
 
 

@@ -90,19 +90,22 @@ def wellformedness(V):
     return W
 
 
-def combined_criterion(V):
+def compute_term_usage(V):
     def inc_dict(dict, key, increment):
         if key in dict.keys():
             dict[key] += increment
         else:
             dict[key] = increment
 
-
     cat_sizes = {}
     for v in V.values():
-        inc_dict(cat_sizes,v['word'],1)
-
+        inc_dict(cat_sizes, v['word'], 1)
     n = len(cat_sizes)
+    return n, cat_sizes
+
+
+def combined_criterion(V):
+    n, cat_sizes = compute_term_usage(V)
 
     cost = 0
     for w in cat_sizes.keys():
@@ -116,6 +119,7 @@ def combined_criterion(V):
                 CCP += 2*sim(i, j)-1
 
     return cost + CCP
+
 
 def min_k_cut_cost(V, k):
     def xrange(start, stop):
@@ -191,19 +195,19 @@ def cielab2rgb(c):
     return np.array(rgb.get_value_tuple())
 
 
-def plot_with_colors(V, save_to_path='dev.png', y_wcs_range=' ABCDEFGHIJ ', x_wcs_range=range(1, 41), use_real_color=True, add_boarders_color=''):
+def plot_with_colors(V, save_to_path='dev.png', y_wcs_range='ABCDEFGHIJ', x_wcs_range=range(0, 41), use_real_color=True):
     #print_color_map(print_index, 4)
 
     N_x = len(x_wcs_range)
     N_y = len(y_wcs_range)
     # make an empty data set
-    word = np.ones([N_y, N_x])
+    word = np.ones([N_y, N_x],dtype=np.int64) * -1
     rgb = np.ones([N_y, N_x, 3])
     for y_alpha, y in zip(list(y_wcs_range), range(N_y)):
         for x_wcs, x in zip(x_wcs_range, range(N_x)):
             t = color_chips.loc[(color_chips['H'] == x_wcs) & (color_chips['V'] == y_alpha)]
             if len(t) == 0:
-                word[y, x] = np.nan
+                word[y, x] = -1
                 rgb[y, x, :] = np.array([1, 1, 1])
             elif len(t) == 1:
                 word[y, x] = V[t.index.values[0]]['word']
@@ -213,28 +217,45 @@ def plot_with_colors(V, save_to_path='dev.png', y_wcs_range=' ABCDEFGHIJ ', x_wc
 
     fig, ax = plt.subplots(1, 1, tight_layout=True)
 
-    if add_boarders_color != '':
-        for y in range(N_y):
-            for x in range(N_x):
-                if not np.isnan(word[y, x]):
-                    if x+1 < N_x and word[y, x] != word[y, x+1]:
-                        ax.add_line(lines.Line2D([x+1, x+1], [N_y - y, N_y - (y+1)], color=add_boarders_color))
 
-                    if (y+1 < N_y and word[y, x] != word[y+1, x]) or y+1 == N_y:
-                            ax.add_line(lines.Line2D([x, x + 1], [N_y - (y + 1), N_y - (y + 1)], color=add_boarders_color))
+    my_cmap = plt.get_cmap('tab20')
 
-                    if (y-1 >= 0 and word[y, x] != word[y-1, x]) or y-1 < 0:
-                            ax.add_line(lines.Line2D([x, x + 1], [N_y - (y + 0), N_y - (y + 0)], color=add_boarders_color))
+    bo = 0.2
+    lw = 1.5
+    for y in range(N_y):
+        for x in range(N_x):
+            if word[y, x] >= 0:
+                word_color = my_cmap.colors[word[y, x]]
+                word_border = '-'
+                if word[y, x] != word[y, (x+1) % N_x]:
+                    ax.add_line(lines.Line2D([x + 1, x + 1], [N_y - y, N_y - (y + 1)], color='w'))
+                    ax.add_line(lines.Line2D([x+1-bo, x+1-bo], [N_y - (y+bo), N_y - (y+1-bo)], color=word_color, ls=word_border, lw=lw))
+
+                if word[y, x] != word[y, x-1 if x-1 >= 0 else N_x-1]:
+                    ax.add_line(lines.Line2D([x+bo, x+bo], [N_y - (y+bo), N_y - (y+1-bo)], color=word_color, ls=word_border, lw=lw))
+
+
+                if (y+1 < N_y and word[y, x] != word[y+1, x]) or y+1 == N_y:
+                    ax.add_line(lines.Line2D([x+bo, x + 1-bo], [N_y - (y + 1-bo), N_y - (y + 1-bo)], color=word_color, ls=word_border, lw=lw))
+                    ax.add_line(lines.Line2D([x, x + 1], [N_y - (y + 1), N_y - (y + 1)], color='w'))
+
+                if (y-1 >= 0 and word[y, x] != word[y-1, x]) or y-1 < 0:
+                        ax.add_line(lines.Line2D([x+bo, x + 1-bo], [N_y - (y + bo), N_y - (y + bo)], color=word_color, ls=word_border, lw=lw))
 
 
     #my_cmap = matplotlib.colors. ListedColormap(['r', 'g', 'b'])
-    my_cmap = plt.get_cmap('Set1')
-    my_cmap.set_bad(color='w', alpha=0)
 
+    my_cmap.set_bad(color='w', alpha=0)
     data = rgb if use_real_color else word
+    data = data.astype(np.float)
+    data[data == -1] = np.nan
     ax.imshow(data, interpolation='none', cmap=my_cmap, extent=[0, N_x, 0, N_y], zorder=0)
 
-    ax.axis('off')
+    #ax.axis('off')
+    ylabels = list(y_wcs_range)
+    ylabels.reverse()
+    plt.yticks([i+0.5 for i in range(len(y_wcs_range))], ylabels, fontsize=8)
+    plt.xticks([i+0.5 for i in range(len(x_wcs_range))], x_wcs_range, fontsize=8)
 
     plt.savefig(save_to_path)
     plt.close()

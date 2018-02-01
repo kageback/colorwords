@@ -4,6 +4,43 @@ import gridengine.batch as ge
 
 import wcs
 
+# for a new value newValue, compute the new count, new mean, the new M2.
+# mean accumulates the mean of the entire dataset
+# M2 aggregates the squared distance from the mean
+# count aggregates the number of samples seen so far
+def update(existingAggregate, newValue):
+    (count, mean, M2) = existingAggregate
+    count = count + 1
+    delta = newValue - mean
+    mean = mean + delta / count
+    delta2 = newValue - mean
+    M2 = M2 + delta * delta2
+
+    return count, mean, M2
+
+# retrieve the mean and variance from an aggregate
+def finalize(existingAggregate):
+    (count, mean, M2) = existingAggregate
+    if count < 2:
+        return count, mean, float('nan')
+
+    return count, mean, M2/(count - 1)
+
+
+def update_stats_dict(d, key, new_value):
+    if key not in d.keys():
+        d[key] = tuple([0, 0, 0])
+
+    d[key] = update(d[key], new_value)
+
+
+def finalize_stats_dict(d):
+    for k in d.keys():
+        stats = finalize(d[k])
+        d[k] = {'count': stats[0], 'mean': stats[1], 'var': stats[2]}
+
+    return d
+
 
 
 def map_job(job, args):
@@ -32,6 +69,8 @@ def reduce_job(job):
     regier_cost = {}
     wellformedness = {}
     combined_criterion = {}
+    term_usage = {}
+
     while True:
         res_path = job.job_dir + '/' + ge.get_task_name(taskid) + '.result.pkl'
         if not os.path.isfile(res_path):
@@ -46,10 +85,16 @@ def reduce_job(job):
             V = task_res['V']
 
             # compute error measures
-            inc_dict(regier_cost, (noise_level, msg_dim), wcs.communication_cost_regier(V))
-            inc_dict(wellformedness, (noise_level, msg_dim), wcs.wellformedness(V))
-            inc_dict(combined_criterion, (noise_level, msg_dim), wcs.combined_criterion(V))
+            #inc_dict(regier_cost_old, (noise_level, msg_dim), wcs.communication_cost_regier(V))
+            #inc_dict(wellformedness, (noise_level, msg_dim), wcs.wellformedness(V))
+            #inc_dict(combined_criterion, (noise_level, msg_dim), wcs.combined_criterion(V))
+            #inc_dict(term_usage, (noise_level, msg_dim), wcs.compute_term_usage(V)[0])
             inc_dict(avg_over, (noise_level, msg_dim), 1)
+
+            update_stats_dict(regier_cost, (noise_level, msg_dim), wcs.communication_cost_regier(V))
+            update_stats_dict(wellformedness, (noise_level, msg_dim), wcs.wellformedness(V))
+            update_stats_dict(combined_criterion, (noise_level, msg_dim), wcs.combined_criterion(V))
+            update_stats_dict(term_usage, (noise_level, msg_dim), wcs.compute_term_usage(V)[0])
 
             # Compile implicit argument ranges for plotting
             if noise_level not in noise_values:
@@ -69,10 +114,12 @@ def reduce_job(job):
     res['noise_values'] = noise_values
     res['msg_dim_values'] = msg_dim_values
 
-    res['regier_cost'] = regier_cost
-    res['wellformedness'] = wellformedness
-    res['combined_criterion'] = combined_criterion
+    res['regier_cost'] = finalize_stats_dict(regier_cost)
+    res['wellformedness'] = finalize_stats_dict(wellformedness)
+    res['combined_criterion'] = finalize_stats_dict(combined_criterion)
+    res['term_usage'] = finalize_stats_dict(term_usage)
     res['avg_over'] = avg_over
+
 
     res_path = job.job_dir + '/result.pkl'
     print('saving result as', res_path)
@@ -81,6 +128,6 @@ def reduce_job(job):
 
 
 if __name__ == "__main__":
-    job_id = 'job.3'
+    job_id = 'job.16'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     reduce_job(job)
