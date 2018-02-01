@@ -40,7 +40,7 @@ def plot_costs(job):
         std_l = []
         for msg_dim_value in msg_dim_values:
             l.append(regier_cost[(noise_value, msg_dim_value)]['mean'])
-            std_l.append(np.sqrt(regier_cost[(noise_value, msg_dim_value)]['var']))
+            std_l.append(np.sqrt(gibson_cost[(noise_value, msg_dim_value)]['var']))
         l = np.array(l)
         std_l = np.array(std_l) / 4
         ax.plot(msg_dim_values, l, '.-', label='$\sigma=' + str(noise_value) + '$')

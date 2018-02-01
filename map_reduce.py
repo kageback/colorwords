@@ -2,6 +2,7 @@ import os
 import pickle
 import gridengine.batch as ge
 import torchHelpers as th
+import torch
 import torch.nn.functional as F
 import numpy as np
 
@@ -73,7 +74,7 @@ def map_job(job, args):
         for noise_i, noise in zip(range(len(args['noise_range'])), args['noise_range']):
             for i, dim in zip(range(len(args['msg_dim_range'])), args['msg_dim_range']):
                 job.run_python_script(args['script'],
-                                      ge_gpu=0,
+                                      ge_gpu=0 if torch.cuda.is_available() else -1,
                                       msg_dim=dim,
                                       max_epochs=args['max_epochs'],
                                       noise_level=noise)
@@ -171,6 +172,6 @@ def reduce_job(job):
 
 
 if __name__ == "__main__":
-    job_id = 'gibson.0'
+    job_id = 'new20.0'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     reduce_job(job)
