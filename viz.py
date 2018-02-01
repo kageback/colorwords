@@ -30,10 +30,29 @@ def plot_costs(job):
     wellformedness = res['wellformedness']
     combined_criterion = res['combined_criterion']
     term_usage = res['term_usage']
+    gibson_cost = res['gibson_cost']
     avg_over = res['avg_over']
 
+    # Plot gibson_cost
+    fig, ax = plt.subplots()
+    for noise_value in noise_values:
+        l = []
+        std_l = []
+        for msg_dim_value in msg_dim_values:
+            l.append(regier_cost[(noise_value, msg_dim_value)]['mean'])
+            std_l.append(np.sqrt(regier_cost[(noise_value, msg_dim_value)]['var']))
+        l = np.array(l)
+        std_l = np.array(std_l) / 4
+        ax.plot(msg_dim_values, l, '.-', label='$\sigma=' + str(noise_value) + '$')
+        ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
+    ax.legend()
+    plt.xlabel('Number of color words')
+    plt.ylabel('Communication cost')
 
-    # Plot commcost
+    fig_name = job.job_dir + '/fig_gibson_cost.png'
+    plt.savefig(fig_name)
+
+    # Plot reiger_cost
     fig, ax = plt.subplots()
     for noise_value in noise_values:
         l = []

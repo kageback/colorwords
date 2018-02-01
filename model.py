@@ -62,6 +62,7 @@ def evaluate(a):
     print("comcost: %f Perplexity %f" % (cost, perplexity))
 
 
+
 def uninformed_commcost_log2(chip_index_guess, chip_indices):
     y = F.softmax(chip_index_guess, dim=1)
     ny = y.cpu().data.numpy()

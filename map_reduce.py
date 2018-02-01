@@ -2,7 +2,9 @@ import os
 import pickle
 import gridengine.batch as ge
 import torchHelpers as th
-from torch.distributions import Categorical
+import torch.nn.functional as F
+import numpy as np
+
 import wcs
 
 # for a new value newValue, compute the new count, new mean, the new M2.
@@ -43,6 +45,28 @@ def finalize_stats_dict(d):
     return d
 
 
+def compute_gibson_cost(a):
+    chip_indices, colors = wcs.all_colors()
+    colors = th.float_var(colors, False)
+    color_terms = th.long_var(range(a.msg_dim), False)
+
+    p_WC = a(perception=colors).t().data.numpy()
+    p_CW = F.softmax(a(msg=color_terms), dim=1).data.numpy()
+
+    S = -np.diag(np.matmul(p_WC.transpose(), (np.log2(p_CW))))
+
+    avg_S = S.sum() / len(S)  # expectation assuming uniform prior
+
+
+    # debug code
+    # s = 0
+    # c = 43
+    # for w in range(a.msg_dim):
+    #     s += -p_WC[w, c]*np.log2(p_CW[w, c])
+    # print(S[c] - s)
+
+    return S, avg_S
+
 
 def map_job(job, args):
     for avg_i in range(args['avg_over']):
@@ -71,6 +95,7 @@ def reduce_job(job):
     wellformedness = {}
     combined_criterion = {}
     term_usage = {}
+    gibson_cost = {}
 
     while True:
         res_path = job.job_dir + '/' + ge.get_task_name(taskid) + '.result.pkl'
@@ -85,16 +110,18 @@ def reduce_job(job):
             msg_dim = task_res['args'].msg_dim
             V = task_res['V']
 
+
+
             #### test agents
-            a = task_res['agent']
-            chip_indices, colors = wcs.all_colors()
-            colors = th.float_var(colors, False)
-
-            probs = a(perception=colors)
-            m = Categorical(probs)
-            msg = m.sample()
-
-            color_guess = a(msg=msg)
+            # a = task_res['agent']
+            # chip_indices, colors = wcs.all_colors()
+            # colors = th.float_var(colors, False)
+            #
+            # probs = a(perception=colors)
+            # m = Categorical(probs)
+            # msg = m.sample()
+            #
+            # color_guess = a(msg=msg)
             ###
 
             # compute error measures
@@ -108,6 +135,8 @@ def reduce_job(job):
             update_stats_dict(wellformedness, (noise_level, msg_dim), wcs.wellformedness(V))
             update_stats_dict(combined_criterion, (noise_level, msg_dim), wcs.combined_criterion(V))
             update_stats_dict(term_usage, (noise_level, msg_dim), wcs.compute_term_usage(V)[0])
+            update_stats_dict(gibson_cost, (noise_level, msg_dim), compute_gibson_cost(task_res['agent'])[1])
+
 
             # Compile implicit argument ranges for plotting
             if noise_level not in noise_values:
@@ -131,6 +160,7 @@ def reduce_job(job):
     res['wellformedness'] = finalize_stats_dict(wellformedness)
     res['combined_criterion'] = finalize_stats_dict(combined_criterion)
     res['term_usage'] = finalize_stats_dict(term_usage)
+    res['gibson_cost'] = finalize_stats_dict(gibson_cost)
     res['avg_over'] = avg_over
 
 
@@ -141,6 +171,6 @@ def reduce_job(job):
 
 
 if __name__ == "__main__":
-    job_id = 'dev.0'
+    job_id = 'gibson.0'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     reduce_job(job)
