@@ -31,8 +31,8 @@ def main():
     print('Reduce job')
     map_reduce.reduce_job(job)
 
-    print('plot results')
-    viz.plot_costs(job)
+    #print('plot results')
+    #viz.plot_costs(job)
 
 
 if __name__ == "__main__":
