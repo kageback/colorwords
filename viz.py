@@ -172,7 +172,7 @@ def plot_task_range(job, start_task, range_name=''):
 
 
 def main():
-    job_id = 'job.16'
+    job_id = 'gibson.0'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     plot_costs(job)
 
