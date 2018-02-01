@@ -161,7 +161,7 @@ def main(args,
                    wcs.communication_cost_regier(V))
                   )
 
-    return color_graph_V(a)
+    return color_graph_V(a), a.cpu()
 
 
 # Script entry point
@@ -202,7 +202,9 @@ if __name__ == "__main__":
 
     res = {}
     res['args'] = args
-    res['V'] = main(args)
+    V, agent = main(args)
+    res['V'] = V
+    res['agent'] = agent
 
     with open(args.save_path + '/' + args.exp_name + '.result.pkl', 'wb') as f:
         pickle.dump(res, f)

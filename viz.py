@@ -2,6 +2,14 @@ import pickle
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
+
+from matplotlib import rc
+
+rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+## for Palatino and other serif fonts use:
+#rc('font',**{'family':'serif','serif':['Palatino']})
+rc('text', usetex=True)
+
 import matplotlib.pyplot as plt
 import gridengine.batch as ge
 
@@ -29,9 +37,14 @@ def plot_costs(job):
     fig, ax = plt.subplots()
     for noise_value in noise_values:
         l = []
+        std_l = []
         for msg_dim_value in msg_dim_values:
             l.append(regier_cost[(noise_value, msg_dim_value)]['mean'])
-        ax.plot(msg_dim_values, l, label=str(noise_value))
+            std_l.append(np.sqrt(regier_cost[(noise_value, msg_dim_value)]['var']))
+        l = np.array(l)
+        std_l = np.array(std_l) / 4
+        ax.plot(msg_dim_values, l,  '.-' ,label='$\sigma=' + str(noise_value) + '$')
+        ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax.legend()
     plt.xlabel('Number of color words')
     plt.ylabel('Communication cost')
@@ -44,9 +57,14 @@ def plot_costs(job):
     fig, ax = plt.subplots()
     for noise_value in noise_values:
         l = []
+        std_l = []
         for msg_dim_value in msg_dim_values:
             l.append(wellformedness[(noise_value, msg_dim_value)]['mean'])
-        ax.plot(msg_dim_values, l, label=str(noise_value))
+            std_l.append(np.sqrt(wellformedness[(noise_value, msg_dim_value)]['var']))
+        l = np.array(l)
+        std_l = np.array(std_l) / 4
+        ax.plot(msg_dim_values, l,  '.-' ,label='$\sigma=' + str(noise_value) + '$')
+        ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax.legend()
     plt.xlabel('Number of color words')
     plt.ylabel('Wellformedness')
@@ -59,9 +77,14 @@ def plot_costs(job):
     fig, ax = plt.subplots()
     for noise_value in noise_values:
         l = []
+        std_l = []
         for msg_dim_value in msg_dim_values:
             l.append(combined_criterion[(noise_value, msg_dim_value)]['mean'])
-        ax.plot(msg_dim_values, l, label=str(noise_value))
+            std_l.append(np.sqrt(combined_criterion[(noise_value, msg_dim_value)]['var']))
+        l = np.array(l)
+        std_l = np.array(std_l) / 4
+        ax.plot(msg_dim_values, l, '.-' ,label='$\sigma=' + str(noise_value) + '$')
+        ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax.legend()
     plt.xlabel('Number of color words')
     plt.ylabel('Combined criterion')
@@ -76,9 +99,13 @@ def plot_costs(job):
     l = []
     std_l = []
     for noise_value in noise_values:
-        #l.append(term_usage[(noise_value, msg_dim_value)] / avg_over[(noise_value, msg_dim_value)])
         l.append(term_usage[(noise_value, msg_dim_value)]['mean'])
         std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
+    l = np.array(l)
+    std_l = np.array(std_l)
+    #ax.plot(noise_values, l, '.', label='$\sigma=' + str(noise_value) + '$')
+    ax.fill_between(noise_values, l - std_l, l + std_l, alpha=0.2)
+
     #ax.bar(noise_values, l, width=10, yerr=std_l, ecolor='k', capsize=5)
     ax.errorbar(noise_values, l, yerr=std_l, fmt='o', ecolor='g',  capsize=5)
 
@@ -86,7 +113,7 @@ def plot_costs(job):
     plt.xlabel('Noise variance')
     plt.ylabel('Average number of color terms')
     plt.xticks([0,25,50,100])
-    plt.ylim([2,10])
+    plt.ylim([5,10])
 
     fig_name = job.job_dir + '/fig_color_term_usage_' + str(msg_dim_value) + '.png'
     plt.savefig(fig_name)
@@ -97,13 +124,19 @@ def plot_costs(job):
     bar_width = 0.35
     opacity = 0.8
     fig, ax = plt.subplots()
-    for msg_dim_value, i in zip(msg_dim_values, range(len(msg_dim_values))):
+    dim_values_used = [6,7,8,9,10,11]
+    for msg_dim_value, i in zip(dim_values_used, range(len(dim_values_used))):
         l = []
         std_l = []
         for noise_value in noise_values:
             l.append(term_usage[(noise_value, msg_dim_value)]['mean'])
             std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
-        ax.errorbar(noise_values, l, label=str(msg_dim_value), yerr=std_l, fmt='o',  capsize=5)
+        l = np.array(l)
+        std_l = np.array(std_l) / 4
+        ax.plot(noise_values, l, '.', label='terms$\leq$' + str(msg_dim_value))
+        ax.fill_between(noise_values, l - std_l, l + std_l, alpha=0.2)
+
+        #ax.errorbar(noise_values, l, label=str(msg_dim_value), yerr=std_l, fmt='o',  capsize=5)
         #ax.bar(noise_values, l, width=10)
         #plt.bar(noise_values + i*bar_width, l, bar_width,
         #        alpha=opacity,
@@ -112,7 +145,7 @@ def plot_costs(job):
     plt.xlabel('Noise variance')
     plt.ylabel('Average number of color terms')
     plt.xticks([0, 25, 50, 100])
-    plt.ylim([2, 9])
+    plt.ylim([5, 9])
 
     fig_name = job.job_dir + '/fig_color_term_usage_all.png'
     plt.savefig(fig_name)
@@ -139,7 +172,7 @@ def plot_task_range(job, start_task, range_name=''):
 
 
 def main():
-    job_id = 'job.2'
+    job_id = 'job.16'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     plot_costs(job)
 

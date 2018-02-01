@@ -1,7 +1,8 @@
 import os
 import pickle
 import gridengine.batch as ge
-
+import torchHelpers as th
+from torch.distributions import Categorical
 import wcs
 
 # for a new value newValue, compute the new count, new mean, the new M2.
@@ -75,7 +76,7 @@ def reduce_job(job):
         res_path = job.job_dir + '/' + ge.get_task_name(taskid) + '.result.pkl'
         if not os.path.isfile(res_path):
             break
-        print('\r Reducing results and computing evaluation metrics for ' + ge.get_task_name(taskid), end='')
+        print('\r Reducing results and computing evaluation metrics for ' + job.job_id + ' ' + ge.get_task_name(taskid), end='')
         with open(res_path, 'rb') as f:
 
             # read data
@@ -83,6 +84,18 @@ def reduce_job(job):
             noise_level = task_res['args'].noise_level
             msg_dim = task_res['args'].msg_dim
             V = task_res['V']
+
+            #### test agents
+            a = task_res['agent']
+            chip_indices, colors = wcs.all_colors()
+            colors = th.float_var(colors, False)
+
+            probs = a(perception=colors)
+            m = Categorical(probs)
+            msg = m.sample()
+
+            color_guess = a(msg=msg)
+            ###
 
             # compute error measures
             #inc_dict(regier_cost_old, (noise_level, msg_dim), wcs.communication_cost_regier(V))
@@ -128,6 +141,6 @@ def reduce_job(job):
 
 
 if __name__ == "__main__":
-    job_id = 'job.16'
+    job_id = 'dev.0'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     reduce_job(job)
