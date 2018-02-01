@@ -14,7 +14,7 @@ def main():
     args['noise_range'] = [0, 25, 50, 100]
     args['avg_over'] = 50
     args['msg_dim_range'] = range(num_words_min, num_words_max+1)
-    job = ge.Job(job_id='dev')
+    job = ge.Job(job_id='avg50')
     args['job_id'] = job.job_id
 
     args_path = job.job_dir + '/job_args.pkl'
