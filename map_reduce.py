@@ -172,6 +172,6 @@ def reduce_job(job):
 
 
 if __name__ == "__main__":
-    job_id = 'new20.0'
+    job_id = 'avg50.0'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     reduce_job(job)

@@ -33,27 +33,10 @@ def plot_costs(job):
     gibson_cost = res['gibson_cost']
     avg_over = res['avg_over']
 
-    # Plot gibson_cost
-    fig, ax = plt.subplots()
-    for noise_value in noise_values:
-        l = []
-        std_l = []
-        for msg_dim_value in msg_dim_values:
-            l.append(regier_cost[(noise_value, msg_dim_value)]['mean'])
-            std_l.append(np.sqrt(gibson_cost[(noise_value, msg_dim_value)]['var']))
-        l = np.array(l)
-        std_l = np.array(std_l) / 4
-        ax.plot(msg_dim_values, l, '.-', label='$\sigma=' + str(noise_value) + '$')
-        ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
-    ax.legend()
-    plt.xlabel('Number of color words')
-    plt.ylabel('Communication cost')
 
-    fig_name = job.job_dir + '/fig_gibson_cost.png'
-    plt.savefig(fig_name)
+    # Plot regier and gibson_cost
+    fig, ax = plt.subplots(1,2, sharex=True, sharey=True)
 
-    # Plot reiger_cost
-    fig, ax = plt.subplots()
     for noise_value in noise_values:
         l = []
         std_l = []
@@ -62,13 +45,34 @@ def plot_costs(job):
             std_l.append(np.sqrt(regier_cost[(noise_value, msg_dim_value)]['var']))
         l = np.array(l)
         std_l = np.array(std_l) / 4
-        ax.plot(msg_dim_values, l,  '.-' ,label='$\sigma=' + str(noise_value) + '$')
-        ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
-    ax.legend()
-    plt.xlabel('Number of color words')
-    plt.ylabel('Communication cost')
+        ax[0].plot(msg_dim_values, l,  '.' ,label='$\sigma=' + str(noise_value) + '$')
+        ax[0].fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
+    ax[0].legend()
+    ax[0].set_title('Communication cost (bits)')
 
-    fig_name = job.job_dir + '/fig_commcost.png'
+    for noise_value in noise_values:
+        l = []
+        std_l = []
+        for msg_dim_value in msg_dim_values:
+            l.append(gibson_cost[(noise_value, msg_dim_value)]['mean'])
+            std_l.append(np.sqrt(gibson_cost[(noise_value, msg_dim_value)]['var']))
+        l = np.array(l)
+        std_l = np.array(std_l) / 4
+        ax[1].plot(msg_dim_values, l, '.', label='$\sigma=' + str(noise_value) + '$')
+        ax[1].fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
+    ax[1].legend()
+
+
+    ax[1].set_title('Communication efficiency (bits)')
+
+    fig.text(0.04, 0.5, 'Cost/efficiency', va='center', rotation='vertical')
+    fig.text(0.5, 0.04, 'Number of color words', ha='center')
+
+    fig.subplots_adjust(wspace=0)
+    plt.setp([a.get_yticklabels() for a in fig.axes[1:]], visible=False)
+
+
+    fig_name = job.job_dir + '/fig_reiger_gibson.png'
     plt.savefig(fig_name)
 
 
@@ -191,12 +195,12 @@ def plot_task_range(job, start_task, range_name=''):
 
 
 def main():
-    job_id = 'gibson.0'
+    job_id = 'new20.0'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     plot_costs(job)
 
     # plot color maps
-    #plot_colormap(job, 350, 'fig_colormap_dev')
+    plot_colormap(job, 350, 'fig_colormap_dev')
     # no noise different #words
     # start_task=0 => noise = 0
     # start_task=342 => noise = 25
