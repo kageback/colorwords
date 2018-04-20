@@ -45,7 +45,7 @@ def plot_costs(job):
             std_l.append(np.sqrt(regier_cost[(noise_value, msg_dim_value)]['var']))
         l = np.array(l)
         std_l = np.array(std_l) / 4
-        ax[0].plot(msg_dim_values, l,  '.' ,label='$\sigma=' + str(noise_value) + '$')
+        ax[0].plot(msg_dim_values, l,  '.' ,label='$\sigma^2=' + str(noise_value) + '$')
         ax[0].fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax[0].legend()
     ax[0].set_title('Communication cost (bits)')
@@ -58,7 +58,7 @@ def plot_costs(job):
             std_l.append(np.sqrt(gibson_cost[(noise_value, msg_dim_value)]['var']))
         l = np.array(l)
         std_l = np.array(std_l) / 4
-        ax[1].plot(msg_dim_values, l, '.', label='$\sigma=' + str(noise_value) + '$')
+        ax[1].plot(msg_dim_values, l, '.', label='$\sigma^2=' + str(noise_value) + '$')
         ax[1].fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax[1].legend()
 
@@ -86,7 +86,7 @@ def plot_costs(job):
             std_l.append(np.sqrt(wellformedness[(noise_value, msg_dim_value)]['var']))
         l = np.array(l)
         std_l = np.array(std_l) / 4
-        ax.plot(msg_dim_values, l,  '.-' ,label='$\sigma=' + str(noise_value) + '$')
+        ax.plot(msg_dim_values, l,  '.' ,label='$\sigma^2=' + str(noise_value) + '$')
         ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax.legend()
     plt.xlabel('Number of color words')
@@ -106,7 +106,7 @@ def plot_costs(job):
             std_l.append(np.sqrt(combined_criterion[(noise_value, msg_dim_value)]['var']))
         l = np.array(l)
         std_l = np.array(std_l) / 4
-        ax.plot(msg_dim_values, l, '.-' ,label='$\sigma=' + str(noise_value) + '$')
+        ax.plot(msg_dim_values, l, '.' ,label='$\sigma^2=' + str(noise_value) + '$')
         ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax.legend()
     plt.xlabel('Number of color words')
@@ -126,7 +126,7 @@ def plot_costs(job):
         std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
     l = np.array(l)
     std_l = np.array(std_l)
-    #ax.plot(noise_values, l, '.', label='$\sigma=' + str(noise_value) + '$')
+    #ax.plot(noise_values, l, '.', label='$\sigma^2=' + str(noise_value) + '$')
     ax.fill_between(noise_values, l - std_l, l + std_l, alpha=0.2)
 
     #ax.bar(noise_values, l, width=10, yerr=std_l, ecolor='k', capsize=5)
@@ -143,14 +143,14 @@ def plot_costs(job):
 
 
     # plot term usage for all #words
+    noise_values = [noise_values[0]] + noise_values[2:-1]
     index = np.arange(len(msg_dim_values))
-    bar_width = 0.35
-    opacity = 0.8
     fig, ax = plt.subplots()
-    dim_values_used = [6,7,8,9,10,11]
+    dim_values_used = [5,6,7,8,9,10,11]
     for msg_dim_value, i in zip(dim_values_used, range(len(dim_values_used))):
         l = []
         std_l = []
+
         for noise_value in noise_values:
             l.append(term_usage[(noise_value, msg_dim_value)]['mean'])
             std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
@@ -165,10 +165,10 @@ def plot_costs(job):
         #        alpha=opacity,
         #        label=str(msg_dim_value))
     ax.legend()
-    plt.xlabel('Noise variance')
+    plt.xlabel('Noise variance ($\sigma^2$)')
     plt.ylabel('Average number of color terms')
-    plt.xticks([0, 25, 50, 100])
-    plt.ylim([5, 9])
+    plt.xticks(noise_values)
+    plt.ylim([4, 9])
 
     fig_name = job.job_dir + '/fig_color_term_usage_all.png'
     plt.savefig(fig_name)
@@ -195,7 +195,7 @@ def plot_task_range(job, start_task, range_name=''):
 
 
 def main():
-    job_id = 'new20.0'
+    job_id = 'avg50.0'
     job = ge.Job(job_id=job_id, load_existing_job=True)
     plot_costs(job)
 
