@@ -11,6 +11,20 @@ wcs_path = 'data/'
 color_chips = pd.read_csv(wcs_path + 'cnum-vhcm-lab-new.txt', sep='\t')
 cielab_map = color_chips[['L*', 'a*', 'b*']].values
 
+term = pd.read_csv(wcs_path + 'term.txt', sep='\t', names=['lang_num', 'spkr_num', 'chip_num', 'term_abrev'])
+dict = pd.read_csv(wcs_path + 'dict.txt', sep='\t', skiprows=[0], names=['lang_num', 'term_num', 'term', 'term_abrev'])
+term_nums = pd.merge(term,
+                     dict.drop_duplicates(subset=['lang_num', 'term_abrev']),
+                     how='inner',
+                     on=['lang_num', 'term_abrev'])
+
+def language_map(lang_num):
+    l = term_nums.loc[term_nums.lang_num == lang_num]
+    map = {chip_i: l.loc[l.chip_num == chip_i]['term_num'].mode().values[0] for chip_i in range(1, 331)}
+    return map
+
+#Iduna (lang_num47)
+#map = language_map(47)
 
 def all_colors():
     return color_chips.index.values, cielab_map
@@ -31,6 +45,34 @@ def chip_index2CIELAB(color_codes):
 
 
 # Evaluation metrics
+import itertools
+def compareMaps(A, B):
+    wordset_A = {a['word'] for a in A.values()}
+    wordset_B = {b['word'] for b in B.values()}
+    if not len(wordset_A) == len(wordset_B):
+        return 0
+    if len(wordset_A) < 11:
+        return
+
+    max_overlap = 0
+    for beta in itertools.permutations(wordset_B):
+        overlap = compareAssignment(A, B, wordset_A, beta)
+        if overlap > max_overlap:
+            max_overlap = overlap
+            best_beta = beta
+
+    return max_overlap
+
+
+def compareAssignment(A, B, word_order_A, word_order_B):
+    scores = []
+    for word_index_a, word_index_b in zip(word_order_A, word_order_B):
+        a_tiles = {t[0] for t in A.items() if t[1]['word'] == word_index_a}
+        b_tiles = {t[0] for t in B.items() if t[1]['word'] == word_index_b}
+        scores.append(len(b_tiles.intersection(a_tiles)) / max([len(a_tiles), len(b_tiles)]))
+
+    return min(scores)
+
 
 def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False, weight_by_size=False):
 
