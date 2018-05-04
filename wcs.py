@@ -20,7 +20,7 @@ term_nums = pd.merge(term,
 
 def language_map(lang_num):
     l = term_nums.loc[term_nums.lang_num == lang_num]
-    map = {chip_i: l.loc[l.chip_num == chip_i]['term_num'].mode().values[0] for chip_i in range(1, 331)}
+    map = {chip_i: l.loc[l.chip_num == color_chips.loc[chip_i]['#cnum']]['term_num'].mode().values[0] for chip_i in range(330)}
     return map
 
 #Iduna (lang_num47)
@@ -47,12 +47,11 @@ def chip_index2CIELAB(color_codes):
 # Evaluation metrics
 import itertools
 def compareMaps(A, B):
-    wordset_A = {a['word'] for a in A.values()}
-    wordset_B = {b['word'] for b in B.values()}
+    wordset_A = {a for a in A.values()}
+    wordset_B = {b for b in B.values()}
     if not len(wordset_A) == len(wordset_B):
         return 0
-    if len(wordset_A) < 11:
-        return
+
 
     max_overlap = 0
     for beta in itertools.permutations(wordset_B):
@@ -67,8 +66,8 @@ def compareMaps(A, B):
 def compareAssignment(A, B, word_order_A, word_order_B):
     scores = []
     for word_index_a, word_index_b in zip(word_order_A, word_order_B):
-        a_tiles = {t[0] for t in A.items() if t[1]['word'] == word_index_a}
-        b_tiles = {t[0] for t in B.items() if t[1]['word'] == word_index_b}
+        a_tiles = {t[0] for t in A.items() if t[1] == word_index_a}
+        b_tiles = {t[0] for t in B.items() if t[1] == word_index_b}
         scores.append(len(b_tiles.intersection(a_tiles)) / max([len(a_tiles), len(b_tiles)]))
 
     return min(scores)
@@ -80,7 +79,7 @@ def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False, weig
     for i in V.keys():
         s[i] = 0
         for j in V.keys():
-            if V[i]['word'] == V[j]['word']:
+            if V[i] == V[j]:
                 s[i] += sim(i, j)
 
 
@@ -90,7 +89,7 @@ def communication_cost_regier(V, sum_over_whole_s=False, norm_over_s=False, weig
         cat_size = 0
         for i in V.keys():
 
-            if sum_over_whole_s or V[i]['word'] == V[t]['word']:
+            if sum_over_whole_s or V[i] == V[t]:
                 z += s[i]
                 cat_size += 1
         l[t] = s[t]/z
@@ -121,12 +120,12 @@ def wellformedness(V):
     Sw = 0
     for i in V.keys():
         for j in V.keys():
-            if V[i]['word'] == V[j]['word']:
+            if V[i] == V[j]:
                 Sw += sim(i, j)
     Da = 0
     for i in V.keys():
         for j in V.keys():
-            if V[i]['word'] != V[j]['word']:
+            if V[i] != V[j]:
                 Da += 1- sim(i, j)
     W = Sw + Da
     return W
@@ -141,7 +140,7 @@ def compute_term_usage(V):
 
     cat_sizes = {}
     for v in V.values():
-        inc_dict(cat_sizes, v['word'], 1)
+        inc_dict(cat_sizes, v, 1)
     n = len(cat_sizes)
     return n, cat_sizes
 
@@ -157,7 +156,7 @@ def combined_criterion(V):
     CCP = 0
     for i in V.keys():
         for j in V.keys():
-            if V[i]['word'] != V[j]['word']:
+            if V[i] != V[j]:
                 CCP += 2*sim(i, j)-1
 
     return cost + CCP
@@ -172,7 +171,7 @@ def min_k_cut_cost(V, k):
         C[i] = []
 
     for chip_index in V.keys():
-        C[V[chip_index]['word']+1].append(chip_index)
+        C[V[chip_index]+1].append(chip_index)
 
     cost = 0
     for i in xrange(1, k-1):
@@ -252,7 +251,7 @@ def plot_with_colors(V, save_to_path='dev.png', y_wcs_range='ABCDEFGHIJ', x_wcs_
                 word[y, x] = -1
                 rgb[y, x, :] = np.array([1, 1, 1])
             elif len(t) == 1:
-                word[y, x] = V[t.index.values[0]]['word']
+                word[y, x] = V[t.index.values[0]]
                 rgb[y, x, :] = cielab2rgb(t[['L*', 'a*', 'b*']].values[0])
             else:
                 raise TabError()
