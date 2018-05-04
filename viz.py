@@ -179,8 +179,8 @@ def plot_colormap(job, taskid, plot_file_name):
     res_path = job.job_dir + '/task.' + str(taskid) + '.result.pkl'
     with open(res_path, 'rb') as f:
         res = pickle.load(f)
-
-    wcs.plot_with_colors(res['V'], job.job_dir + '/' + plot_file_name + '.png')
+    V = {k: res['V'][k]['word'] for k in range(330)}
+    wcs.plot_with_colors(V, job.job_dir + '/' + plot_file_name + '.png')
 
 
 def plot_task_range(job, start_task, range_name=''):
@@ -195,12 +195,18 @@ def plot_task_range(job, start_task, range_name=''):
 
 
 def main():
+
+    wcs.plot_with_colors(wcs.language_map(32), 'Culina.png')
+    wcs.plot_with_colors(wcs.language_map(36), 'Ejagam.png')
+    wcs.plot_with_colors(wcs.language_map(47), 'iduna.png')
+    wcs.plot_with_colors(wcs.language_map(16), 'Buglere.png')
+
     job_id = 'avg50.0'
     job = ge.Job(job_id=job_id, load_existing_job=True)
-    plot_costs(job)
+    #plot_costs(job)
 
     # plot color maps
-    plot_colormap(job, 350, 'fig_colormap_dev')
+    #plot_colormap(job, 350, 'fig_colormap_dev2')
     # no noise different #words
     # start_task=0 => noise = 0
     # start_task=342 => noise = 25
