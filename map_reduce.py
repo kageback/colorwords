@@ -97,7 +97,8 @@ def reduce_job(job):
     combined_criterion = {}
     term_usage = {}
     gibson_cost = {}
-
+    ca = wcs.language_map(36)
+    s_max = 0
     while True:
         res_path = job.job_dir + '/' + ge.get_task_name(taskid) + '.result.pkl'
         if not os.path.isfile(res_path):
@@ -110,8 +111,16 @@ def reduce_job(job):
             noise_level = task_res['args'].noise_level
             msg_dim = task_res['args'].msg_dim
             V = task_res['V']
+            if type(V[0]) is dict:
+                # Provides backwards compatibility with older runs
+                V = {k: V[k]['word'] for k in range(330)}
 
-
+            #compare with real language
+            s = wcs.compareMaps(ca, V)
+            if s > s_max:
+                wcs.plot_with_colors(V, 'Ejagam_' + str(s) + '.png')
+                s_max = s
+                print(s_max)
 
             #### test agents
             # a = task_res['agent']
