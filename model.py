@@ -31,17 +31,17 @@ def basic_reward(color_codes, color_guess):
     return reward
 
 
-def regier_reward(color, color_guess):
+def regier_reward(color, color_guess, cuda):
     _, color_code_guess = color_guess.max(1)
-    color_guess = th.float_var(wcs.chip_index2CIELAB(color_code_guess.data), args.cuda)
+    color_guess = th.float_var(wcs.chip_index2CIELAB(color_code_guess.data), cuda)
     return sim(color, color_guess)
 
 
 # Evaluation
 
-def evaluate(a):
+def evaluate(a,cuda):
     chip_indices, colors = wcs.all_colors()
-    colors = th.float_var(colors, args.cuda)
+    colors = th.float_var(colors, cuda)
 
     probs = a(perception=colors)
     _, msg = probs.max(1)
@@ -58,7 +58,7 @@ def evaluate(a):
     print('word usage count', [(msg == w).sum().cpu().data.numpy()[0] for w in range(a.msg_dim)], 'num of words used', nwords)
 
     color_guess = a(msg=msg)
-    cost, perplexity = uninformed_commcost_log2(color_guess, th.long_var(chip_indices, args.cuda))
+    cost, perplexity = uninformed_commcost_log2(color_guess, th.long_var(chip_indices, cuda))
     print("comcost: %f Perplexity %f" % (cost, perplexity))
 
 
@@ -80,25 +80,33 @@ def uninformed_commcost_log2(chip_index_guess, chip_indices):
     return cost, perplexity
 
 
-def color_graph_V(a):
+def color_graph_V(a, cuda=torch.cuda.is_available()):
     V = {}
 
     chip_indices, colors = wcs.all_colors()
-    colors = th.float_var(colors, args.cuda)
-    #chip_indices = th.long_var(chip_indices, args.cuda)
+    colors = th.float_var(colors, cuda)
+    #chip_indices = th.long_var(chip_indices, cuda)
 
     probs = a(perception=colors)
     _, words = probs.max(1)
 
     for chip_index in chip_indices:
-        V[chip_index] = {'word': words[chip_index].cpu().data[0]}
+        V[chip_index] = words[chip_index].cpu().data[0]
 
     return V
 
 
 # Model training loop
 
-def main(args,
+def main(cuda=torch.cuda.is_available(),
+         msg_dim=11,
+         max_epochs=1000,
+         noise_level=0,
+         hidden_dim=20,
+         batch_size=100,
+         sender_loss_multiplier=100,
+         print_interval=1000,
+         eval_interlval=0,
          perception_dim=3,
          reward_func='regier_reward',
          print_wcs_cnum_map=False):
@@ -106,21 +114,21 @@ def main(args,
     if print_wcs_cnum_map:
         wcs.print_color_map(lambda t: str(t['#cnum'].values[0]), pad=4)
 
-    a = th.cuda(agents.BasicAgent(args.msg_dim, args.hidden_dim, wcs.color_dim(), perception_dim), args.cuda)
+    a = th.cuda(agents.BasicAgent(msg_dim, hidden_dim, wcs.color_dim(), perception_dim), cuda)
 
     optimizer = optim.Adam(a.parameters())
     criterion_receiver = torch.nn.CrossEntropyLoss()
 
     sumrev = 0
-    for i in range(args.max_epochs):
+    for i in range(max_epochs):
         optimizer.zero_grad()
 
-        color_codes, colors = wcs.batch(batch_size=args.batch_size)
-        color_codes = th.long_var(color_codes, args.cuda)
-        colors = th.float_var(colors, args.cuda)
+        color_codes, colors = wcs.batch(batch_size=batch_size)
+        color_codes = th.long_var(color_codes, cuda)
+        colors = th.float_var(colors, cuda)
 
-        noise = th.float_var(Normal(torch.zeros(args.batch_size, perception_dim),
-                                    torch.ones(args.batch_size, perception_dim) * args.noise_level).sample(), args.cuda)
+        noise = th.float_var(Normal(torch.zeros(batch_size, perception_dim),
+                                    torch.ones(batch_size, perception_dim) * noise_level).sample(), cuda)
         colors = colors + noise
 
         probs = a(perception=colors)
@@ -134,9 +142,9 @@ def main(args,
         if reward_func == 'basic_reward':
             reward = basic_reward(color_codes, color_guess)
         elif reward_func == 'regier_reward':
-            reward = regier_reward( colors, color_guess)
+            reward = regier_reward( colors, color_guess, cuda)
 
-        loss_sender = args.sender_loss_multiplier * ((-m.log_prob(msg) * reward).sum()/args.batch_size)
+        loss_sender = sender_loss_multiplier * ((-m.log_prob(msg) * reward).sum()/batch_size)
 
         loss = loss_receiver + loss_sender
         loss.backward()
@@ -145,16 +153,16 @@ def main(args,
 
         # printing status and periodic evaluation
         sumrev += reward.sum()
-        if args.print_interval != 0 and (i % args.print_interval == 0):
+        if print_interval != 0 and (i % print_interval == 0):
             print("Loss sender %f Loss receiver %f Naive perplexity %f Average reward %f" %
                   (loss_sender,
                    loss_receiver,
-                   torch.exp(loss_receiver), sumrev / (args.print_interval*args.batch_size))
+                   torch.exp(loss_receiver), sumrev / (print_interval*batch_size))
                   )
             sumrev = 0
 
 
-        if args.periodic_evaluation != 0 and (i % args.periodic_evaluation == 0):
+        if eval_interlval != 0 and (i % eval_interlval == 0):
             evaluate(a)
             V = color_graph_V(a)
             print("Min k-cut cost %f Regier_commcost %f" %
@@ -162,51 +170,50 @@ def main(args,
                    wcs.communication_cost_regier(V))
                   )
 
-    return color_graph_V(a), a.cpu()
+    return a.cpu()
 
 
 # Script entry point
-
 if __name__ == "__main__":
-    import pickle
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Agents learning to communicate color')
-    #parser.add_argument('--cuda', action='store_true',
-    #                    help='use CUDA')
-    parser.add_argument('--save_path', type=str, default='save',
-                        help='path for saving logs and results')
-    parser.add_argument('--exp_name', type=str, default='dev',
-                        help='path for saving logs and results')
-    parser.add_argument('--msg_dim', type=int, default=11,
-                        help='Number of color words')
-    parser.add_argument('--max_epochs', type=int, default=1000,
-                        help='Number of training epochs')
-    parser.add_argument('--noise_level', type=int, default=0,
-                        help='How much noise to add to the color chips')
-    parser.add_argument('--hidden_dim', type=int, default=20,
-                        help='size of hidden representation')
-    parser.add_argument('--batch_size', type=int, default=100,
-                        help='Number of epochs to run in parallel before updating parameters')
-    parser.add_argument('--sender_loss_multiplier', type=int, default=100,
-                        help='Mixing factor when mixing the sender with the receiver part of the objective')
-    parser.add_argument('--print_interval', type=int, default=1000,
-                        help='How often to print training state.  Set 0 for no printing')
-    parser.add_argument('--periodic_evaluation', type=int, default=0,
-                        help='How often to perform periodic evaluation. Set 0 for no periodic evaluation.')
-
-    args = parser.parse_args()
-    print(args)
-
-    #if args.cuda:
-    args.cuda = torch.cuda.is_available()
-
-    res = {}
-    res['args'] = args
-    V, agent = main(args)
-    res['V'] = V
-    res['agent'] = agent
-
-    with open(args.save_path + '/' + args.exp_name + '.result.pkl', 'wb') as f:
-        pickle.dump(res, f)
+    agent = main()
+    # outdated code kept for ref until lift to new GE done
+    # import pickle
+    # import argparse
+    #
+    # parser = argparse.ArgumentParser(description='Agents learning to communicate color')
+    # parser.add_argument('--save_path', type=str, default='save',
+    #                     help='path for saving logs and results')
+    # parser.add_argument('--exp_name', type=str, default='dev',
+    #                     help='path for saving logs and results')
+    # parser.add_argument('--msg_dim', type=int, default=11,
+    #                     help='Number of color words')
+    # parser.add_argument('--max_epochs', type=int, default=1000,
+    #                     help='Number of training epochs')
+    # parser.add_argument('--noise_level', type=int, default=0,
+    #                     help='How much noise to add to the color chips')
+    # parser.add_argument('--hidden_dim', type=int, default=20,
+    #                     help='size of hidden representation')
+    # parser.add_argument('--batch_size', type=int, default=100,
+    #                     help='Number of epochs to run in parallel before updating parameters')
+    # parser.add_argument('--sender_loss_multiplier', type=int, default=100,
+    #                     help='Mixing factor when mixing the sender with the receiver part of the objective')
+    # parser.add_argument('--print_interval', type=int, default=1000,
+    #                     help='How often to print training state.  Set 0 for no printing')
+    # parser.add_argument('--periodic_evaluation', type=int, default=0,
+    #                     help='How often to perform periodic evaluation. Set 0 for no periodic evaluation.')
+    #
+    # args = parser.parse_args()
+    # print(args)
+    #
+    # #if args.cuda:
+    # args.cuda = torch.cuda.is_available()
+    #
+    # res = {}
+    # res['args'] = args
+    # V, agent = main(args)
+    # res['V'] = V
+    # res['agent'] = agent
+    #
+    # with open(args.save_path + '/' + args.exp_name + '.result.pkl', 'wb') as f:
+    #     pickle.dump(res, f)
 

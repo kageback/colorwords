@@ -11,53 +11,40 @@ rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
 
 import matplotlib.pyplot as plt
-import gridengine.batch as ge
+import gridengine as ge
 
 import wcs
 
 
-def plot_costs(job):
+def plot_costs(pipeline):
+    params = pipeline.hyperparams
+    avg_axis = params.axes['avg_over']
 
-    # Load results
-    res_path = job.job_dir + '/result.pkl'
-    with open(res_path, 'rb') as f:
-        res = pickle.load(f)
+    gibson_cost = params.to_numpy('gibson_cost', result_index=1)
+    regier_cost = params.to_numpy('regier_cost')
+    wellformedness = params.to_numpy('wellformedness')
+    combined_criterion = params.to_numpy('combined_criterion')
+    term_usage = params.to_numpy('term_usage')
 
-    noise_values = res['noise_values']
-    msg_dim_values = res['msg_dim_values']
 
-    regier_cost = res['regier_cost']
-    wellformedness = res['wellformedness']
-    combined_criterion = res['combined_criterion']
-    term_usage = res['term_usage']
-    gibson_cost = res['gibson_cost']
-    avg_over = res['avg_over']
-
+    noise_values = params.ranges['noise_range']
+    msg_dim_values = params.ranges['msg_dim_range']
 
     # Plot regier and gibson_cost
-    fig, ax = plt.subplots(1,2, sharex=True, sharey=True)
+    fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
 
-    for noise_value in noise_values:
-        l = []
-        std_l = []
-        for msg_dim_value in msg_dim_values:
-            l.append(regier_cost[(noise_value, msg_dim_value)]['mean'])
-            std_l.append(np.sqrt(regier_cost[(noise_value, msg_dim_value)]['var']))
-        l = np.array(l)
-        std_l = np.array(std_l) / 4
-        ax[0].plot(msg_dim_values, l,  '.' ,label='$\sigma^2=' + str(noise_value) + '$')
+    for noise_i, noise_value in enumerate(noise_values):
+
+        l = regier_cost[:, noise_i, :].mean(avg_axis)
+        std_l = regier_cost[:, noise_i, :].std(avg_axis) / 4
+        ax[0].plot(msg_dim_values, l,  '.', label='$\sigma^2=' + str(noise_value) + '$')
         ax[0].fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax[0].legend()
     ax[0].set_title('Communication cost (bits)')
 
-    for noise_value in noise_values:
-        l = []
-        std_l = []
-        for msg_dim_value in msg_dim_values:
-            l.append(gibson_cost[(noise_value, msg_dim_value)]['mean'])
-            std_l.append(np.sqrt(gibson_cost[(noise_value, msg_dim_value)]['var']))
-        l = np.array(l)
-        std_l = np.array(std_l) / 4
+    for noise_i, noise_value in enumerate(noise_values):
+        l = gibson_cost[:, noise_i, :].mean(0)
+        std_l = gibson_cost[:, noise_i, :].std(0) / 4
         ax[1].plot(msg_dim_values, l, '.', label='$\sigma^2=' + str(noise_value) + '$')
         ax[1].fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax[1].legend()
@@ -72,124 +59,102 @@ def plot_costs(job):
     plt.setp([a.get_yticklabels() for a in fig.axes[1:]], visible=False)
 
 
-    fig_name = job.job_dir + '/fig_reiger_gibson.png'
+    fig_name = pipeline.pipeline_path + '/fig_reiger_gibson.png'
     plt.savefig(fig_name)
 
 
     # plot wellformedness
     fig, ax = plt.subplots()
-    for noise_value in noise_values:
-        l = []
-        std_l = []
-        for msg_dim_value in msg_dim_values:
-            l.append(wellformedness[(noise_value, msg_dim_value)]['mean'])
-            std_l.append(np.sqrt(wellformedness[(noise_value, msg_dim_value)]['var']))
-        l = np.array(l)
-        std_l = np.array(std_l) / 4
-        ax.plot(msg_dim_values, l,  '.' ,label='$\sigma^2=' + str(noise_value) + '$')
+    for noise_i, noise_value in enumerate(noise_values):
+        # l = []
+        # std_l = []
+        # for msg_dim_value in msg_dim_values:
+        #     l.append(wellformedness[(noise_value, msg_dim_value)]['mean'])
+        #     std_l.append(np.sqrt(wellformedness[(noise_value, msg_dim_value)]['var']))
+        # l = np.array(l)
+        # std_l = np.array(std_l) / 4
+
+        l = wellformedness[:, noise_i, :].mean(0)
+        std_l = wellformedness[:, noise_i, :].std(0) / 4
+
+        ax.plot(msg_dim_values, l,  '.', label='$\sigma^2=' + str(noise_value) + '$')
         ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax.legend()
     plt.xlabel('Number of color words')
     plt.ylabel('Wellformedness')
 
-    fig_name = job.job_dir + '/fig_wellformedness.png'
+    fig_name = pipeline.pipeline_path + '/fig_wellformedness.png'
     plt.savefig(fig_name)
 
 
     # plot combined_criterion
     fig, ax = plt.subplots()
-    for noise_value in noise_values:
-        l = []
-        std_l = []
-        for msg_dim_value in msg_dim_values:
-            l.append(combined_criterion[(noise_value, msg_dim_value)]['mean'])
-            std_l.append(np.sqrt(combined_criterion[(noise_value, msg_dim_value)]['var']))
-        l = np.array(l)
-        std_l = np.array(std_l) / 4
+    for noise_i, noise_value in enumerate(noise_values):
+        # l = []
+        # std_l = []
+        # for msg_dim_value in msg_dim_values:
+        #     l.append(combined_criterion[(noise_value, msg_dim_value)]['mean'])
+        #     std_l.append(np.sqrt(combined_criterion[(noise_value, msg_dim_value)]['var']))
+        # l = np.array(l)
+        # std_l = np.array(std_l) / 4
+        l = combined_criterion[:, noise_i, :].mean(0)
+        std_l = combined_criterion[:, noise_i, :].std(0) / 4
         ax.plot(msg_dim_values, l, '.' ,label='$\sigma^2=' + str(noise_value) + '$')
         ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax.legend()
     plt.xlabel('Number of color words')
     plt.ylabel('Combined criterion')
 
-    fig_name = job.job_dir + '/fig_combined_criterion.png'
-    plt.savefig(fig_name)
-
-
-    # plot term usage
-    fig, ax = plt.subplots()
-    msg_dim_value = 11
-    l = []
-    std_l = []
-    for noise_value in noise_values:
-        l.append(term_usage[(noise_value, msg_dim_value)]['mean'])
-        std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
-    l = np.array(l)
-    std_l = np.array(std_l)
-    #ax.plot(noise_values, l, '.', label='$\sigma^2=' + str(noise_value) + '$')
-    ax.fill_between(noise_values, l - std_l, l + std_l, alpha=0.2)
-
-    #ax.bar(noise_values, l, width=10, yerr=std_l, ecolor='k', capsize=5)
-    ax.errorbar(noise_values, l, yerr=std_l, fmt='o', ecolor='g',  capsize=5)
-
-    #ax.legend()
-    plt.xlabel('Noise variance')
-    plt.ylabel('Average number of color terms')
-    plt.xticks([0,25,50,100])
-    plt.ylim([5,10])
-
-    fig_name = job.job_dir + '/fig_color_term_usage_' + str(msg_dim_value) + '.png'
+    fig_name = pipeline.pipeline_path + '/fig_combined_criterion.png'
     plt.savefig(fig_name)
 
 
     # plot term usage for all #words
-    noise_values = [noise_values[0]] + noise_values[2:-1]
+    #noise_values = [noise_values[0]] + noise_values[2:-1]
     index = np.arange(len(msg_dim_values))
     fig, ax = plt.subplots()
-    dim_values_used = [5,6,7,8,9,10,11]
-    for msg_dim_value, i in zip(dim_values_used, range(len(dim_values_used))):
-        l = []
-        std_l = []
+    # dim_values_used = [5,6,7,8,9,10,11]
+    # for msg_dim_value, i in zip(dim_values_used, range(len(dim_values_used))):
+    for msg_dim_i, msg_dim_value in enumerate(msg_dim_values):
+        #     l = []
+        #     std_l = []
+        #     for noise_value in noise_values:
+        #         l.append(term_usage[(noise_value, msg_dim_value)]['mean'])
+        #         std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
+        #     l = np.array(l)
+        #     std_l = np.array(std_l) / 4
 
-        for noise_value in noise_values:
-            l.append(term_usage[(noise_value, msg_dim_value)]['mean'])
-            std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
-        l = np.array(l)
-        std_l = np.array(std_l) / 4
+        l = term_usage[:, :, msg_dim_i].mean(0)
+        std_l = term_usage[:, :, msg_dim_i].std(0) / 4
+
         ax.plot(noise_values, l, '.', label='terms$\leq$' + str(msg_dim_value))
         ax.fill_between(noise_values, l - std_l, l + std_l, alpha=0.2)
-
-        #ax.errorbar(noise_values, l, label=str(msg_dim_value), yerr=std_l, fmt='o',  capsize=5)
-        #ax.bar(noise_values, l, width=10)
-        #plt.bar(noise_values + i*bar_width, l, bar_width,
-        #        alpha=opacity,
-        #        label=str(msg_dim_value))
     ax.legend()
     plt.xlabel('Noise variance ($\sigma^2$)')
     plt.ylabel('Average number of color terms')
     plt.xticks(noise_values)
     plt.ylim([4, 9])
 
-    fig_name = job.job_dir + '/fig_color_term_usage_all.png'
+    fig_name = pipeline.pipeline_path + '/fig_color_term_usage_all.png'
     plt.savefig(fig_name)
 
 
-def plot_colormap(job, taskid, plot_file_name):
+def plot_colormap(pipeline, taskid, plot_file_name):
     # Load results
-    res_path = job.job_dir + '/task.' + str(taskid) + '.result.pkl'
+    res_path = pipeline.pipeline_path + '/task.' + str(taskid) + '.result.pkl'
     with open(res_path, 'rb') as f:
         res = pickle.load(f)
     V = {k: res['V'][k]['word'] for k in range(330)}
-    wcs.plot_with_colors(V, job.job_dir + '/' + plot_file_name + '.png')
+    wcs.plot_with_colors(V, pipeline.pipeline_path + '/' + plot_file_name + '.png')
 
 
-def plot_task_range(job, start_task, range_name=''):
+def plot_task_range(pipeline, start_task, range_name=''):
 
     num_of_words = range(3, 12)
 
     for taskid, nwords in zip(range(start_task, start_task + len(num_of_words)), num_of_words):
 
-        plot_file_name = 'fig_colormap_' + range_name + '_' + '_nwords' + str(nwords) + '_' + job.job_id.replace('.', '') + '_task' + str(taskid)
+        plot_file_name = 'fig_colormap_' + range_name + '_' + '_nwords' + str(nwords) + '_' + pipeline.pipeline_name.replace('.', '') + '_task' + str(taskid)
 
         plot_colormap(job, taskid, plot_file_name)
 
