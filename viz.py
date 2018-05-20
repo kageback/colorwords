@@ -16,19 +16,18 @@ import gridengine as ge
 import wcs
 
 
-def plot_costs(pipeline):
-    params = pipeline.hyperparams
-    avg_axis = params.axes['avg_over']
+def plot_costs(exp):
+    avg_axis = exp.axes['avg_over']
 
-    gibson_cost = params.to_numpy('gibson_cost', result_index=1)
-    regier_cost = params.to_numpy('regier_cost')
-    wellformedness = params.to_numpy('wellformedness')
-    combined_criterion = params.to_numpy('combined_criterion')
-    term_usage = params.to_numpy('term_usage')
+    gibson_cost = exp.to_numpy('gibson_cost', result_index=1)
+    regier_cost = exp.to_numpy('regier_cost')
+    wellformedness = exp.to_numpy('wellformedness')
+    combined_criterion = exp.to_numpy('combined_criterion')
+    term_usage = exp.to_numpy('term_usage')
 
 
-    noise_values = params.ranges['noise_range']
-    msg_dim_values = params.ranges['msg_dim_range']
+    noise_values = exp.ranges['noise_range']
+    msg_dim_values = exp.ranges['msg_dim_range']
 
     # Plot regier and gibson_cost
     fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
@@ -59,44 +58,28 @@ def plot_costs(pipeline):
     plt.setp([a.get_yticklabels() for a in fig.axes[1:]], visible=False)
 
 
-    fig_name = pipeline.pipeline_path + '/fig_reiger_gibson.png'
+    fig_name = exp.pipeline_path + '/fig_reiger_gibson.png'
     plt.savefig(fig_name)
 
 
     # plot wellformedness
     fig, ax = plt.subplots()
     for noise_i, noise_value in enumerate(noise_values):
-        # l = []
-        # std_l = []
-        # for msg_dim_value in msg_dim_values:
-        #     l.append(wellformedness[(noise_value, msg_dim_value)]['mean'])
-        #     std_l.append(np.sqrt(wellformedness[(noise_value, msg_dim_value)]['var']))
-        # l = np.array(l)
-        # std_l = np.array(std_l) / 4
-
         l = wellformedness[:, noise_i, :].mean(0)
         std_l = wellformedness[:, noise_i, :].std(0) / 4
-
         ax.plot(msg_dim_values, l,  '.', label='$\sigma^2=' + str(noise_value) + '$')
         ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax.legend()
     plt.xlabel('Number of color words')
     plt.ylabel('Wellformedness')
 
-    fig_name = pipeline.pipeline_path + '/fig_wellformedness.png'
+    fig_name = exp.pipeline_path + '/fig_wellformedness.png'
     plt.savefig(fig_name)
 
 
     # plot combined_criterion
     fig, ax = plt.subplots()
     for noise_i, noise_value in enumerate(noise_values):
-        # l = []
-        # std_l = []
-        # for msg_dim_value in msg_dim_values:
-        #     l.append(combined_criterion[(noise_value, msg_dim_value)]['mean'])
-        #     std_l.append(np.sqrt(combined_criterion[(noise_value, msg_dim_value)]['var']))
-        # l = np.array(l)
-        # std_l = np.array(std_l) / 4
         l = combined_criterion[:, noise_i, :].mean(0)
         std_l = combined_criterion[:, noise_i, :].std(0) / 4
         ax.plot(msg_dim_values, l, '.' ,label='$\sigma^2=' + str(noise_value) + '$')
@@ -105,7 +88,7 @@ def plot_costs(pipeline):
     plt.xlabel('Number of color words')
     plt.ylabel('Combined criterion')
 
-    fig_name = pipeline.pipeline_path + '/fig_combined_criterion.png'
+    fig_name = exp.pipeline_path + '/fig_combined_criterion.png'
     plt.savefig(fig_name)
 
 
@@ -114,16 +97,7 @@ def plot_costs(pipeline):
     index = np.arange(len(msg_dim_values))
     fig, ax = plt.subplots()
     # dim_values_used = [5,6,7,8,9,10,11]
-    # for msg_dim_value, i in zip(dim_values_used, range(len(dim_values_used))):
     for msg_dim_i, msg_dim_value in enumerate(msg_dim_values):
-        #     l = []
-        #     std_l = []
-        #     for noise_value in noise_values:
-        #         l.append(term_usage[(noise_value, msg_dim_value)]['mean'])
-        #         std_l.append(np.sqrt(term_usage[(noise_value, msg_dim_value)]['var']))
-        #     l = np.array(l)
-        #     std_l = np.array(std_l) / 4
-
         l = term_usage[:, :, msg_dim_i].mean(0)
         std_l = term_usage[:, :, msg_dim_i].std(0) / 4
 
@@ -135,7 +109,7 @@ def plot_costs(pipeline):
     plt.xticks(noise_values)
     plt.ylim([4, 9])
 
-    fig_name = pipeline.pipeline_path + '/fig_color_term_usage_all.png'
+    fig_name = exp.pipeline_path + '/fig_color_term_usage_all.png'
     plt.savefig(fig_name)
 
 
@@ -149,18 +123,13 @@ def plot_colormap(pipeline, taskid, plot_file_name):
 
 
 def plot_task_range(pipeline, start_task, range_name=''):
-
     num_of_words = range(3, 12)
-
     for taskid, nwords in zip(range(start_task, start_task + len(num_of_words)), num_of_words):
-
         plot_file_name = 'fig_colormap_' + range_name + '_' + '_nwords' + str(nwords) + '_' + pipeline.pipeline_name.replace('.', '') + '_task' + str(taskid)
-
-        plot_colormap(job, taskid, plot_file_name)
+        plot_colormap(pipeline, taskid, plot_file_name)
 
 
 def main():
-
     wcs.plot_with_colors(wcs.language_map(32), 'Culina.png')
     wcs.plot_with_colors(wcs.language_map(36), 'Ejagam.png')
     wcs.plot_with_colors(wcs.language_map(47), 'iduna.png')
