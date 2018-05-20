@@ -23,16 +23,17 @@ def main():
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
 
-    exp = HyperParamSearchExperiment([('avg_over', range(2)),  # 50
+    exp = HyperParamSearchExperiment([('avg_over', range(1)),  # 50
                                      ('noise_range', [0]),  # [0, 25, 50, 100]
                                      ('msg_dim_range', range(5, 6))],  # range(3,12)
-                                     queue=queue, exp_name='dev')
+                                     queue=queue, exp_name='softdev')
 
     for (params_i, params_v) in exp:
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
         net = exp.run(model.main,
+                           com_model='onehot',
                            msg_dim=params_v[exp.axes['msg_dim_range']],
-                           max_epochs=10, #10000
+                           max_epochs=10000, #10000
                            noise_level=params_v[exp.axes['noise_range']],
                            hidden_dim=20,
                            batch_size=100,

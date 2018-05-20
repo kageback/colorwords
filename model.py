@@ -99,6 +99,7 @@ def color_graph_V(a, cuda=torch.cuda.is_available()):
 # Model training loop
 
 def main(cuda=torch.cuda.is_available(),
+         com_model='onehot',
          msg_dim=11,
          max_epochs=1000,
          noise_level=0,
@@ -114,7 +115,10 @@ def main(cuda=torch.cuda.is_available(),
     if print_wcs_cnum_map:
         wcs.print_color_map(lambda t: str(t['#cnum'].values[0]), pad=4)
 
-    a = th.cuda(agents.BasicAgent(msg_dim, hidden_dim, wcs.color_dim(), perception_dim), cuda)
+    if com_model == 'onehot':
+        a = th.cuda(agents.BasicAgent(msg_dim, hidden_dim, wcs.color_dim(), perception_dim), cuda)
+    elif com_model == 'softmax':
+        a = th.cuda(agents.SoftmaxAgent(msg_dim, hidden_dim, wcs.color_dim(), perception_dim), cuda)
 
     optimizer = optim.Adam(a.parameters())
     criterion_receiver = torch.nn.CrossEntropyLoss()
@@ -132,27 +136,37 @@ def main(cuda=torch.cuda.is_available(),
         colors = colors + noise
 
         probs = a(perception=colors)
-        m = Categorical(probs)
-        msg = m.sample()
 
-        color_guess = a(msg=msg)
+        if com_model == 'onehot':
+            m = Categorical(probs)
+            msg = m.sample()
+
+            color_guess = a(msg=msg)
+
+
+
+            if reward_func == 'basic_reward':
+                reward = basic_reward(color_codes, color_guess)
+            elif reward_func == 'regier_reward':
+                reward = regier_reward( colors, color_guess, cuda)
+
+            sumrev += reward.sum()
+
+            loss_sender = sender_loss_multiplier * ((-m.log_prob(msg) * reward).sum()/batch_size)
+
+        elif com_model == 'softmax':
+            loss_sender = 0
+            color_guess = a(msg=probs)
 
         loss_receiver = criterion_receiver(color_guess, color_codes)
-
-        if reward_func == 'basic_reward':
-            reward = basic_reward(color_codes, color_guess)
-        elif reward_func == 'regier_reward':
-            reward = regier_reward( colors, color_guess, cuda)
-
-        loss_sender = sender_loss_multiplier * ((-m.log_prob(msg) * reward).sum()/batch_size)
-
         loss = loss_receiver + loss_sender
+
         loss.backward()
 
         optimizer.step()
 
         # printing status and periodic evaluation
-        sumrev += reward.sum()
+
         if print_interval != 0 and (i % print_interval == 0):
             print("Loss sender %f Loss receiver %f Naive perplexity %f Average reward %f" %
                   (loss_sender,
