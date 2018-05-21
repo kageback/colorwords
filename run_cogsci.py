@@ -23,10 +23,10 @@ def main():
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
 
-    exp = HyperParamSearchExperiment([('avg_over', range(2)),  # 50
+    exp = HyperParamSearchExperiment([('avg_over', range(1)),  # 50
                                      ('noise_range', [0]),  # [0, 25, 50, 100]
                                      ('msg_dim_range', range(5, 6))],  # range(3,12)
-                                     queue=queue, exp_name='dev')
+                                     queue=queue, exp_name='cogsci')
 
     for (params_i, params_v) in exp:
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
@@ -41,6 +41,7 @@ def main():
                            eval_interlval=0)
 
         V = exp.run(model.color_graph_V, a=net.result(), cuda=False)
+
 
         exp.set_result('gibson_cost', params_i, exp.run(evaluate.compute_gibson_cost, a=net.result()))
         exp.set_result('regier_cost', params_i, exp.run(wcs.communication_cost_regier, V=V.result()))
@@ -57,7 +58,10 @@ def main():
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
     print('plot results')
-    viz.plot_costs(exp)
+    viz.plot_reiger_gibson(exp)
+    viz.plot_wellformedness(exp)
+    viz.plot_combined_criterion(exp)
+    viz.plot_term_usage(exp)
 
 
 if __name__ == "__main__":

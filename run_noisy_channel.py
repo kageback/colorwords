@@ -23,7 +23,8 @@ def main():
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
 
-    exp = HyperParamSearchExperiment([('avg_over', range(1)),  # 50
+    exp = HyperParamSearchExperiment([#('com_noise', [0, 1]),
+                                     ('avg_over', range(1)),  # 50
                                      ('noise_range', [0]),  # [0, 25, 50, 100]
                                      ('msg_dim_range', range(5, 6))],  # range(3,12)
                                      queue=queue, exp_name='softdev')
@@ -32,8 +33,9 @@ def main():
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
         net = exp.run(model.main,
                            com_model='onehot',
+                           com_noise=0.1,#params_v[exp.axes['com_noise']],
                            msg_dim=params_v[exp.axes['msg_dim_range']],
-                           max_epochs=10000, #10000
+                           max_epochs=1000, #10000
                            noise_level=params_v[exp.axes['noise_range']],
                            hidden_dim=20,
                            batch_size=100,
@@ -42,6 +44,8 @@ def main():
                            eval_interlval=0)
 
         V = exp.run(model.color_graph_V, a=net.result(), cuda=False)
+
+        exp.run(wcs.plot_with_colors, V=V.result(), save_to_path='test.png')
 
         exp.set_result('gibson_cost', params_i, exp.run(evaluate.compute_gibson_cost, a=net.result()))
         exp.set_result('regier_cost', params_i, exp.run(wcs.communication_cost_regier, V=V.result()))
@@ -58,7 +62,10 @@ def main():
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
     print('plot results')
-    viz.plot_costs(exp)
+    viz.plot_reiger_gibson(exp)
+    viz.plot_wellformedness(exp)
+    #viz.plot_combined_criterion(exp)
+    #viz.plot_term_usage(exp)
 
 
 if __name__ == "__main__":

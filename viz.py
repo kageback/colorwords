@@ -16,15 +16,11 @@ import gridengine as ge
 import wcs
 
 
-def plot_costs(exp):
+def plot_reiger_gibson(exp):
     avg_axis = exp.axes['avg_over']
 
     gibson_cost = exp.to_numpy('gibson_cost', result_index=1)
     regier_cost = exp.to_numpy('regier_cost')
-    wellformedness = exp.to_numpy('wellformedness')
-    combined_criterion = exp.to_numpy('combined_criterion')
-    term_usage = exp.to_numpy('term_usage')
-
 
     noise_values = exp.ranges['noise_range']
     msg_dim_values = exp.ranges['msg_dim_range']
@@ -62,7 +58,11 @@ def plot_costs(exp):
     plt.savefig(fig_name)
 
 
-    # plot wellformedness
+def plot_wellformedness(exp):
+    wellformedness = exp.to_numpy('wellformedness')
+    noise_values = exp.ranges['noise_range']
+    msg_dim_values = exp.ranges['msg_dim_range']
+
     fig, ax = plt.subplots()
     for noise_i, noise_value in enumerate(noise_values):
         l = wellformedness[:, noise_i, :].mean(0)
@@ -77,7 +77,12 @@ def plot_costs(exp):
     plt.savefig(fig_name)
 
 
+def plot_combined_criterion(exp):
     # plot combined_criterion
+    combined_criterion = exp.to_numpy('combined_criterion')
+    noise_values = exp.ranges['noise_range']
+    msg_dim_values = exp.ranges['msg_dim_range']
+
     fig, ax = plt.subplots()
     for noise_i, noise_value in enumerate(noise_values):
         l = combined_criterion[:, noise_i, :].mean(0)
@@ -92,7 +97,12 @@ def plot_costs(exp):
     plt.savefig(fig_name)
 
 
+def plot_term_usage(exp):
     # plot term usage for all #words
+    term_usage = exp.to_numpy('term_usage')
+    noise_values = exp.ranges['noise_range']
+    msg_dim_values = exp.ranges['msg_dim_range']
+
     #noise_values = [noise_values[0]] + noise_values[2:-1]
     index = np.arange(len(msg_dim_values))
     fig, ax = plt.subplots()

@@ -8,7 +8,7 @@ from torch.distributions import Normal
 import agents
 import wcs
 import torchHelpers as th
-
+from torch.autograd import Variable
 
 # basic color chip similarity
 
@@ -100,6 +100,7 @@ def color_graph_V(a, cuda=torch.cuda.is_available()):
 
 def main(cuda=torch.cuda.is_available(),
          com_model='onehot',
+         com_noise=0,
          msg_dim=11,
          max_epochs=1000,
          noise_level=0,
@@ -156,7 +157,11 @@ def main(cuda=torch.cuda.is_available(),
 
         elif com_model == 'softmax':
             loss_sender = 0
-            color_guess = a(msg=probs)
+            noise = th.float_var(Normal(torch.zeros(batch_size, msg_dim),
+                                        torch.ones(batch_size, msg_dim) * com_noise).sample(), cuda)
+            msg=probs+noise
+            color_guess = a(msg=msg)
+
 
         loss_receiver = criterion_receiver(color_guess, color_codes)
         loss = loss_receiver + loss_sender
