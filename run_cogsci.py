@@ -4,7 +4,7 @@ import numpy as np
 
 import gridengine as sge
 from gridengine.queue import Queue, Local
-from gridengine.pipeline import HyperParamSearchExperiment
+from gridengine.pipeline import Experiment
 
 import evaluate
 import model
@@ -23,10 +23,10 @@ def main():
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
 
-    exp = HyperParamSearchExperiment([('avg_over', range(1)),  # 50
-                                     ('noise_range', [0]),  # [0, 25, 50, 100]
-                                     ('msg_dim_range', range(5, 6))],  # range(3,12)
-                                     queue=queue, exp_name='cogsci')
+    exp = Experiment([('avg_over', range(1)),  # 50
+                      ('noise_range', [0]),  # [0, 25, 50, 100]
+                      ('msg_dim_range', range(5, 6))],  # range(3,12)
+                     queue=queue, exp_name='cogsci')
 
     for (params_i, params_v) in exp:
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))

@@ -15,6 +15,28 @@ import gridengine as ge
 
 import wcs
 
+def plot_com_noise_cost(exp):
+    avg_axis = exp.axes['avg_over']
+    gibson_cost = exp.to_numpy('gibson_cost', result_index=1)
+    com_noise = exp.param_ranges['com_noise']
+    msg_dim = exp.param_ranges['msg_dim']
+
+    fig, ax = plt.subplots()
+    for msg_dim_i, msg_dim_value in enumerate(msg_dim):
+
+        l = gibson_cost[:, msg_dim_i, :].mean(avg_axis)
+        std_l = gibson_cost[:, msg_dim_i, :].std(avg_axis) / 4
+
+        ax.plot(com_noise, l,  '.', label='terms=' + str(msg_dim_value))
+        ax.fill_between(com_noise, l - std_l, l + std_l, alpha=0.2)
+
+    ax.legend()
+    plt.xlabel('Communication noise')
+    plt.ylabel('Gibson communication efficiency')
+
+    fig_name = exp.pipeline_path + '/fig_gibson_vs_com_noise.png'
+    plt.savefig(fig_name)
+    
 
 def plot_reiger_gibson(exp):
     avg_axis = exp.axes['avg_over']
@@ -139,14 +161,17 @@ def plot_task_range(pipeline, start_task, range_name=''):
         plot_colormap(pipeline, taskid, plot_file_name)
 
 
+from gridengine.pipeline import Experiment
 def main():
-    wcs.plot_with_colors(wcs.language_map(32), 'Culina.png')
-    wcs.plot_with_colors(wcs.language_map(36), 'Ejagam.png')
-    wcs.plot_with_colors(wcs.language_map(47), 'iduna.png')
-    wcs.plot_with_colors(wcs.language_map(16), 'Buglere.png')
-
-    job_id = 'avg50.0'
-    job = ge.Job(job_id=job_id, load_existing_job=True)
+    exp = Experiment.load('num_symbs.0')
+    plot_com_noise_cost(exp)
+    # wcs.plot_with_colors(wcs.language_map(32), 'Culina.png')
+    # wcs.plot_with_colors(wcs.language_map(36), 'Ejagam.png')
+    # wcs.plot_with_colors(wcs.language_map(47), 'iduna.png')
+    # wcs.plot_with_colors(wcs.language_map(16), 'Buglere.png')
+    #
+    # job_id = 'avg50.0'
+    # job = ge.Job(job_id=job_id, load_existing_job=True)
     #plot_costs(job)
 
     # plot color maps
