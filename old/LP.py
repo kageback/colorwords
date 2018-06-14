@@ -1,5 +1,6 @@
-import wcs
 import numpy as np
+
+from com_enviroments import wcs
 
 if __name__ == "__main__":
     # c = [-1, 4]
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     c = np.zeros(n*n)
     for j in range(n):
         for i in range(n):
-            c[i+n*j] = 2*wcs.sim(i, j)-1
+            c[i+n*j] = 2 * wcs.sim(i, j) - 1
 
     A = np.zeros([n*n*n,n*n])
     for i in range(n):
@@ -38,9 +39,6 @@ if __name__ == "__main__":
     bounds = tuple([(0,1) for i in range(n*n)])
 
     from scipy.optimize import linprog
-
-
-    import pandas
 
     #print(pandas.DataFrame(c))
     #print(pandas.DataFrame(A))

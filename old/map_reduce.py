@@ -1,12 +1,11 @@
 import os
 import pickle
-import gridengine as ge
-import torchHelpers as th
-import torch
-import torch.nn.functional as F
-import numpy as np
 
-import wcs
+import torch
+
+import gridengine as ge
+from com_enviroments import wcs
+
 
 # for a new value newValue, compute the new count, new mean, the new M2.
 # mean accumulates the mean of the entire dataset

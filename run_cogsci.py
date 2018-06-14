@@ -1,15 +1,10 @@
-import pickle
-
-import numpy as np
-
-import gridengine as sge
-from gridengine.queue import Queue, Local
-from gridengine.pipeline import Experiment
-
 import evaluate
+import gridengine as sge
 import model
-import wcs
 import viz
+from com_enviroments import wcs
+from gridengine.pipeline import Experiment
+from gridengine.queue import Queue, Local
 
 
 def main():
@@ -23,9 +18,9 @@ def main():
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
 
-    exp = Experiment([('avg_over', range(1)),  # 50
-                      ('noise_range', [0]),  # [0, 25, 50, 100]
-                      ('msg_dim_range', range(5, 6))],  # range(3,12)
+    exp = Experiment(param_ranges=[('avg_over', range(1)),  # 50
+                                   ('noise_range', [0]),  # [0, 25, 50, 100]
+                                   ('msg_dim_range', range(3, 8))],  # range(3,12)
                      queue=queue, exp_name='cogsci')
 
     for (params_i, params_v) in exp:
@@ -44,10 +39,10 @@ def main():
 
 
         exp.set_result('gibson_cost', params_i, exp.run(evaluate.compute_gibson_cost, a=net.result()))
-        exp.set_result('regier_cost', params_i, exp.run(wcs.communication_cost_regier, V=V.result()))
-        exp.set_result('wellformedness', params_i, exp.run(wcs.wellformedness, V=V.result()))
-        exp.set_result('combined_criterion', params_i, exp.run(wcs.combined_criterion, V=V.result()))
-        exp.set_result('term_usage', params_i, exp.run(wcs.compute_term_usage, V=V.result()))
+        exp.set_result('regier_cost', params_i, exp.run(evaluate.communication_cost_regier, V=V.result(), sim=evaluate.sim))
+        exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, V=V.result(), sim=evaluate.sim))
+        exp.set_result('combined_criterion', params_i, exp.run(evaluate.combined_criterion, V=V.result(), sim=evaluate.sim))
+        exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=V.result()))
 
 
     print("\nAll tasks queued to clusters")

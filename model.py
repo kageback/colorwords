@@ -6,35 +6,10 @@ from torch.distributions import Categorical
 from torch.distributions import Normal
 
 import agents
-import wcs
 import torchHelpers as th
-from torch.autograd import Variable
-
-# basic color chip similarity
-
-def dist(color_x, color_y):
-    # CIELAB distance 76 (euclidean distance)
-    diff = (color_x - color_y)
-    return diff.norm(2, 1)
+import com_enviroments
 
 
-def sim(color_x, color_y, c = 0.001):
-    # Regier similarity
-    return torch.exp(-c * torch.pow(dist(color_x, color_y), 2))
-
-
-# Reward functions
-
-def basic_reward(color_codes, color_guess):
-    _, I = color_guess.max(1)
-    reward = (color_codes == I).float() - (color_codes != I).float()
-    return reward
-
-
-def regier_reward(color, color_guess, cuda):
-    _, color_code_guess = color_guess.max(1)
-    color_guess = th.float_var(wcs.chip_index2CIELAB(color_code_guess.data), cuda)
-    return sim(color, color_guess)
 
 
 # Evaluation
@@ -80,7 +55,7 @@ def uninformed_commcost_log2(chip_index_guess, chip_indices):
     return cost, perplexity
 
 
-def color_graph_V(a, cuda=torch.cuda.is_available()):
+def color_graph_V(a, wcs, cuda=torch.cuda.is_available()):
     V = {}
 
     chip_indices, colors = wcs.all_colors()
@@ -99,6 +74,7 @@ def color_graph_V(a, cuda=torch.cuda.is_available()):
 # Model training loop
 
 def main(cuda=torch.cuda.is_available(),
+         task='wcs',
          com_model='onehot',
          com_noise=0,
          msg_dim=11,
@@ -110,11 +86,9 @@ def main(cuda=torch.cuda.is_available(),
          print_interval=1000,
          eval_interlval=0,
          perception_dim=3,
-         reward_func='regier_reward',
-         print_wcs_cnum_map=False):
+         reward_func='regier_reward'):
 
-    if print_wcs_cnum_map:
-        wcs.print_color_map(lambda t: str(t['#cnum'].values[0]), pad=4)
+    wcs = com_enviroments.make(task)
 
     if com_model == 'onehot':
         a = th.cuda(agents.BasicAgent(msg_dim, hidden_dim, wcs.color_dim(), perception_dim), cuda)
@@ -144,12 +118,10 @@ def main(cuda=torch.cuda.is_available(),
 
             color_guess = a(msg=msg)
 
-
-
             if reward_func == 'basic_reward':
-                reward = basic_reward(color_codes, color_guess)
+                reward = wcs.basic_reward(color_codes, color_guess)
             elif reward_func == 'regier_reward':
-                reward = regier_reward( colors, color_guess, cuda)
+                reward = wcs.regier_reward(colors, color_guess, cuda)
 
             sumrev += reward.sum()
 

@@ -1,4 +1,4 @@
-import wcs
+from com_enviroments import wcs
 
 parent = dict()
 rank = dict()

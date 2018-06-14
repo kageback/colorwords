@@ -1,6 +1,8 @@
 import pickle
-import numpy as np
+
 import matplotlib
+import numpy as np
+
 matplotlib.use('Agg')
 
 from matplotlib import rc
@@ -11,9 +13,9 @@ rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
 
 import matplotlib.pyplot as plt
-import gridengine as ge
 
-import wcs
+from com_enviroments import wcs
+
 
 def plot_com_noise_cost(exp):
     avg_axis = exp.axes['avg_over']
@@ -44,8 +46,8 @@ def plot_reiger_gibson(exp):
     gibson_cost = exp.to_numpy('gibson_cost', result_index=1)
     regier_cost = exp.to_numpy('regier_cost')
 
-    noise_values = exp.ranges['noise_range']
-    msg_dim_values = exp.ranges['msg_dim_range']
+    noise_values = exp.param_ranges['noise_range']
+    msg_dim_values = exp.param_ranges['msg_dim_range']
 
     # Plot regier and gibson_cost
     fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
@@ -82,8 +84,8 @@ def plot_reiger_gibson(exp):
 
 def plot_wellformedness(exp):
     wellformedness = exp.to_numpy('wellformedness')
-    noise_values = exp.ranges['noise_range']
-    msg_dim_values = exp.ranges['msg_dim_range']
+    noise_values = exp.param_ranges['noise_range']
+    msg_dim_values = exp.param_ranges['msg_dim_range']
 
     fig, ax = plt.subplots()
     for noise_i, noise_value in enumerate(noise_values):
@@ -102,8 +104,8 @@ def plot_wellformedness(exp):
 def plot_combined_criterion(exp):
     # plot combined_criterion
     combined_criterion = exp.to_numpy('combined_criterion')
-    noise_values = exp.ranges['noise_range']
-    msg_dim_values = exp.ranges['msg_dim_range']
+    noise_values = exp.param_ranges['noise_range']
+    msg_dim_values = exp.param_ranges['msg_dim_range']
 
     fig, ax = plt.subplots()
     for noise_i, noise_value in enumerate(noise_values):
@@ -122,8 +124,8 @@ def plot_combined_criterion(exp):
 def plot_term_usage(exp):
     # plot term usage for all #words
     term_usage = exp.to_numpy('term_usage')
-    noise_values = exp.ranges['noise_range']
-    msg_dim_values = exp.ranges['msg_dim_range']
+    noise_values = exp.param_ranges['noise_range']
+    msg_dim_values = exp.param_ranges['msg_dim_range']
 
     #noise_values = [noise_values[0]] + noise_values[2:-1]
     index = np.arange(len(msg_dim_values))
