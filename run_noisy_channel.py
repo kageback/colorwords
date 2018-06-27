@@ -2,7 +2,7 @@ import numpy as np
 
 import evaluate
 import gridengine as sge
-import model
+import com_game
 import viz
 from com_enviroments import wcs
 from gridengine.pipeline import Experiment
@@ -23,10 +23,11 @@ def main():
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
 
-    exp = Experiment(exp_name='num_symbs',
+    exp = Experiment(exp_name='noisy_channel',
                      fixed_params=[('env', 'wcs'),
                                    ('perception_noise', 5),
-                                   ('max_epochs', 100),
+                                   ('max_epochs', 10000),  #10000
+                                   ('batch_size', 100),
                                    ('com_model', 'softmax')],
                      param_ranges=[('avg_over', range(2)),
                                    ('msg_dim', range(3, 4)),  # 50
@@ -39,32 +40,23 @@ def main():
     for (params_i, params_v) in exp:
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
 
-        if exp.fixed_params['com_model'] == 'onehot':
-            a = th.cuda(agents.BasicAgent(msg_dim=params_v[exp.axes['msg_dim']],
-                                          hidden_dim=20,
-                                          color_dim=env.color_dim(),
-                                          perception_dim=3))
+        agent_a = agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
+                                                hidden_dim=20,
+                                                color_dim=env.color_dim(),
+                                                perception_dim=3)
 
-        elif exp.fixed_params['com_model'] == 'softmax':
-            a = th.cuda(agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
-                                            hidden_dim=20,
-                                            color_dim=env.color_dim(),
-                                            perception_dim=3))
-
-        net = exp.run(model.main,
+        net = exp.run(com_game.play_noisy_channel_cont_reward,
                       env=env,
-                      agent_a=a,
-                      agent_b=a,
-                      com_model=exp.fixed_params['com_model'],
+                      agent_a=agent_a,
+                      agent_b=agent_b,
                       com_noise=params_v[exp.axes['com_noise']],
                       msg_dim=params_v[exp.axes['msg_dim']],
-                      max_epochs=exp.fixed_params['max_epochs'], #10000
-                      noise_level=exp.fixed_params['perception_noise'],
-                      batch_size=100,
-                      sender_loss_multiplier=100,
+                      max_epochs=exp.fixed_params['max_epochs'],
+                      perception_noise=exp.fixed_params['perception_noise'],
+                      batch_size=exp.fixed_params['batch_size'],
                       print_interval=1000)
 
-        V = exp.run(model.color_graph_V, a=net.result(), wcs=env, cuda=False)
+        V = exp.run(com_game.color_graph_V, a=net.result(), env=env)
 
         exp.run(env.plot_with_colors, V=V.result(), save_to_path='test.png')
 

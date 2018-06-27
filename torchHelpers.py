@@ -17,4 +17,4 @@ def cuda(var, use_cuda=None):
     if use_cuda:
         return var.cuda()
     else:
-        return var
+        return var.cpu()
