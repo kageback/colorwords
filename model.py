@@ -5,9 +5,7 @@ from torch import optim
 from torch.distributions import Categorical
 from torch.distributions import Normal
 
-import agents
 import torchHelpers as th
-import com_enviroments
 
 
 
@@ -74,7 +72,9 @@ def color_graph_V(a, wcs, cuda=torch.cuda.is_available()):
 # Model training loop
 
 def main(cuda=torch.cuda.is_available(),
-         task='wcs',
+         env=None,
+         agent_a=None,
+         agent_b=None,
          com_model='onehot',
          com_noise=0,
          msg_dim=11,
@@ -88,14 +88,10 @@ def main(cuda=torch.cuda.is_available(),
          perception_dim=3,
          reward_func='regier_reward'):
 
-    wcs = com_enviroments.make(task)
+    wcs = env# com_enviroments.make(task)
 
-    if com_model == 'onehot':
-        a = th.cuda(agents.BasicAgent(msg_dim, hidden_dim, wcs.color_dim(), perception_dim), cuda)
-    elif com_model == 'softmax':
-        a = th.cuda(agents.SoftmaxAgent(msg_dim, hidden_dim, wcs.color_dim(), perception_dim), cuda)
 
-    optimizer = optim.Adam(a.parameters())
+    optimizer = optim.Adam(list(agent_a.parameters()) + list(agent_b.parameters()))  #optim.Adam(list(agent_a.parameters()))
     criterion_receiver = torch.nn.CrossEntropyLoss()
 
     sumrev = 0
@@ -110,13 +106,13 @@ def main(cuda=torch.cuda.is_available(),
                                     torch.ones(batch_size, perception_dim) * noise_level).sample(), cuda)
         colors = colors + noise
 
-        probs = a(perception=colors)
+        probs = agent_a(perception=colors)
 
         if com_model == 'onehot':
             m = Categorical(probs)
             msg = m.sample()
 
-            color_guess = a(msg=msg)
+            color_guess = agent_b(msg=msg)
 
             if reward_func == 'basic_reward':
                 reward = wcs.basic_reward(color_codes, color_guess)
@@ -132,7 +128,7 @@ def main(cuda=torch.cuda.is_available(),
             noise = th.float_var(Normal(torch.zeros(batch_size, msg_dim),
                                         torch.ones(batch_size, msg_dim) * com_noise).sample(), cuda)
             msg=probs+noise
-            color_guess = a(msg=msg)
+            color_guess = agent_b(msg=msg)
 
 
         loss_receiver = criterion_receiver(color_guess, color_codes)
@@ -161,7 +157,7 @@ def main(cuda=torch.cuda.is_available(),
                    wcs.communication_cost_regier(V))
                   )
 
-    return a.cpu()
+    return agent_a.cpu()
 
 
 # Script entry point

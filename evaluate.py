@@ -6,7 +6,7 @@ import torchHelpers as th
 from com_enviroments import wcs
 
 
-def compute_gibson_cost(a):
+def compute_gibson_cost(a, wcs):
     chip_indices, colors = wcs.all_colors()
     colors = th.float_var(colors, False)
     color_terms = th.long_var(range(a.msg_dim), False)

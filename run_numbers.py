@@ -21,7 +21,7 @@ def main():
                recursive=True)
 
     exp = Experiment(exp_name='num_dev',
-                     fixed_params=[('task', 'numbers'),
+                     fixed_params=[('env', 'wcs'),
                                    ('perception_noise', 0),
                                    ('com_model', 'softmax'),
                                    ('max_epochs', 10000),  # 10000
@@ -33,12 +33,12 @@ def main():
                                    ('com_noise', np.linspace(start=0, stop=1.5, num=1))],  # np.logspace(-2, 2, 10)
                      queue=queue)
 
-    #wcs = com_enviroments.make(exp.fixed_params['task'])
+    env = com_enviroments.make(exp.fixed_params['env'])
 
     for (params_i, params_v) in exp:
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
         net = exp.run(model.main,
-                      task=exp.fixed_params['task'],
+                      env=env,
                       com_model=exp.fixed_params['com_model'],
                       com_noise=params_v[exp.axes['com_noise']],
                       msg_dim=params_v[exp.axes['msg_dim']],
