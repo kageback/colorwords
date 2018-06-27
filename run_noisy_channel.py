@@ -60,11 +60,9 @@ def main():
                       msg_dim=params_v[exp.axes['msg_dim']],
                       max_epochs=exp.fixed_params['max_epochs'], #10000
                       noise_level=exp.fixed_params['perception_noise'],
-                      hidden_dim=20,
                       batch_size=100,
                       sender_loss_multiplier=100,
-                      print_interval=1000,
-                      eval_interlval=0)
+                      print_interval=1000)
 
         V = exp.run(model.color_graph_V, a=net.result(), wcs=env, cuda=False)
 
