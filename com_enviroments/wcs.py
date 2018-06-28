@@ -27,18 +27,6 @@ def cielab2rgb(c):
 
     return np.array(rgb.get_value_tuple())
 
-# basic color chip similarity
-
-def dist(color_x, color_y):
-    # CIELAB distance 76 (euclidean distance)
-    diff = (color_x - color_y)
-    return diff.norm(2, 1)
-
-
-def sim(color_x, color_y, c = 0.001):
-    # Regier similarity
-    return torch.exp(-c * torch.pow(dist(color_x, color_y), 2))
-
 
 # Reward functions
 
@@ -114,11 +102,21 @@ class WCS_Enviroment:
             print('')
 
 
-    def regier_reward(self, color, color_guess, cuda):
+    def regier_reward(self, color, color_guess):
         _, color_code_guess = color_guess.max(1)
-        color_guess = th.float_var(self.chip_index2CIELAB(color_code_guess.data), cuda)
-        return sim(color, color_guess)
+        color_guess = th.float_var(self.chip_index2CIELAB(color_code_guess.data))
+        return self.sim(color, color_guess)
 
+    # basic color chip similarity
+
+    def dist(self, color_x, color_y):
+        # CIELAB distance 76 (euclidean distance)
+        diff = (color_x - color_y)
+        return diff.norm(2, 1)
+
+    def sim(self, color_x, color_y, c=0.001):
+        # Regier similarity
+        return torch.exp(-c * torch.pow(self.dist(color_x, color_y), 2))
 
     # plotting
 

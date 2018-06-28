@@ -23,12 +23,12 @@ def main():
 
     exp = Experiment(exp_name='noisy_channel',
                      fixed_params=[('env', 'wcs'),
-                                   ('perception_noise', 5),
-                                   ('max_epochs', 100),  #10000
+                                   ('perception_noise', 0),
+                                   ('max_epochs', 10000),  #10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100)],
-                     param_ranges=[('avg_over', range(2)),
-                                   ('msg_dim', range(3, 7)),  # 50
+                     param_ranges=[('avg_over', range(1)),
+                                   ('msg_dim', range(6, 7)),  # 50
                                    ('com_noise', np.linspace(start=0, stop=1.5, num=2))],  # np.logspace(-2, 2, 10)
                      queue=queue)
 
@@ -48,7 +48,7 @@ def main():
                                                    max_epochs=exp.fixed_params['max_epochs'],
                                                    perception_noise=exp.fixed_params['perception_noise'],
                                                    batch_size=exp.fixed_params['batch_size'],
-                                                   print_interval=1000)
+                                                   print_interval=100)
 
         game_outcome = exp.run(game.play, env, agent_a, agent_b)
 

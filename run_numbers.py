@@ -42,15 +42,15 @@ def main():
                                                 color_dim=env.color_dim(),
                                                 perception_dim=3)
 
-        net = exp.run(com_game.play_noisy_channel_desc_reward,
-                      env=env,
-                      agent_a=agent_a,
-                      agent_b=agent_b,
-                      com_noise=params_v[exp.axes['com_noise']],
-                      msg_dim=params_v[exp.axes['msg_dim']],
-                      max_epochs=exp.fixed_params['max_epochs'],
-                      batch_size=exp.fixed_params['batch_size'],
-                      print_interval=1000)
+
+        game = com_game.NoisyChannelContRewardGame(com_noise=params_v[exp.axes['com_noise']],
+                                                   msg_dim=params_v[exp.axes['msg_dim']],
+                                                   max_epochs=exp.fixed_params['max_epochs'],
+                                                   perception_noise=exp.fixed_params['perception_noise'],
+                                                   batch_size=exp.fixed_params['batch_size'],
+                                                   print_interval=1000)
+
+        game_outcome = exp.run(game.play, env, agent_a, agent_b)
 
         V = exp.run(com_game.color_graph_V, a=net.result(), env=env)
 
