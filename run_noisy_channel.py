@@ -4,13 +4,11 @@ import evaluate
 import gridengine as sge
 import com_game
 import viz
-from com_enviroments import wcs
 from gridengine.pipeline import Experiment
 from gridengine.queue import Queue, Local
 
 import com_enviroments
 import agents
-import torchHelpers as th
 
 def main():
 
@@ -26,11 +24,11 @@ def main():
     exp = Experiment(exp_name='noisy_channel',
                      fixed_params=[('env', 'wcs'),
                                    ('perception_noise', 5),
-                                   ('max_epochs', 10000),  #10000
-                                   ('batch_size', 100),
-                                   ('com_model', 'softmax')],
+                                   ('max_epochs', 100),  #10000
+                                   ('hidden_dim', 20),
+                                   ('batch_size', 100)],
                      param_ranges=[('avg_over', range(2)),
-                                   ('msg_dim', range(3, 4)),  # 50
+                                   ('msg_dim', range(3, 7)),  # 50
                                    ('com_noise', np.linspace(start=0, stop=1.5, num=2))],  # np.logspace(-2, 2, 10)
                      queue=queue)
 
@@ -41,26 +39,24 @@ def main():
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
 
         agent_a = agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
-                                                hidden_dim=20,
+                                                hidden_dim=exp.fixed_params['hidden_dim'],
                                                 color_dim=env.color_dim(),
                                                 perception_dim=3)
 
-        net = exp.run(com_game.play_noisy_channel_cont_reward,
-                      env=env,
-                      agent_a=agent_a,
-                      agent_b=agent_b,
-                      com_noise=params_v[exp.axes['com_noise']],
-                      msg_dim=params_v[exp.axes['msg_dim']],
-                      max_epochs=exp.fixed_params['max_epochs'],
-                      perception_noise=exp.fixed_params['perception_noise'],
-                      batch_size=exp.fixed_params['batch_size'],
-                      print_interval=1000)
+        game = com_game.NoisyChannelContRewardGame(com_noise=params_v[exp.axes['com_noise']],
+                                                   msg_dim=params_v[exp.axes['msg_dim']],
+                                                   max_epochs=exp.fixed_params['max_epochs'],
+                                                   perception_noise=exp.fixed_params['perception_noise'],
+                                                   batch_size=exp.fixed_params['batch_size'],
+                                                   print_interval=1000)
 
-        V = exp.run(com_game.color_graph_V, a=net.result(), env=env)
+        game_outcome = exp.run(game.play, env, agent_a, agent_b)
+
+        V = exp.run(evaluate.color_graph_V, a=game_outcome.result(), env=env)
 
         exp.run(env.plot_with_colors, V=V.result(), save_to_path='test.png')
 
-        exp.set_result('gibson_cost', params_i, exp.run(evaluate.compute_gibson_cost, a=net.result(), wcs=env))
+        exp.set_result('gibson_cost', params_i, exp.run(evaluate.compute_gibson_cost, a=game_outcome.result(), wcs=env))
         #exp.set_result('regier_cost', params_i, exp.run(wcs.communication_cost_regier, V=V.result()))
         #exp.set_result('wellformedness', params_i, exp.run(wcs.wellformedness, V=V.result()))
         #exp.set_result('combined_criterion', params_i, exp.run(wcs.combined_criterion, V=V.result()))

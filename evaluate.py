@@ -5,6 +5,19 @@ import torch.nn.functional as F
 import torchHelpers as th
 from com_enviroments import wcs
 
+def color_graph_V(a, env):
+    V = {}
+    a = th.cuda(a)
+    chip_indices, colors = env.all_colors()
+    colors = th.float_var(colors)
+
+    probs = a(perception=colors)
+    _, words = probs.max(1)
+
+    for chip_index in chip_indices:
+        V[chip_index] = words[chip_index].cpu().data[0]
+
+    return V
 
 def compute_gibson_cost(a, wcs):
     chip_indices, colors = wcs.all_colors()
