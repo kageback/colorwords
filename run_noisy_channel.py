@@ -10,6 +10,7 @@ from gridengine.queue import Queue, Local
 import com_enviroments
 import agents
 
+from com_enviroments.wcs import WCS_Enviroment
 def main():
 
 
@@ -32,14 +33,14 @@ def main():
                                    ('com_noise', np.linspace(start=0, stop=1.5, num=2))],  # np.logspace(-2, 2, 10)
                      queue=queue)
 
-    env = com_enviroments.make(exp.fixed_params['env'])
+    env = exp.run(com_enviroments.make, exp.fixed_params['env'])
 
     for (params_i, params_v) in exp:
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
 
         agent_a = agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
                                                 hidden_dim=exp.fixed_params['hidden_dim'],
-                                                color_dim=env.data_dim(),
+                                                color_dim=330,#env.data_dim(),
                                                 perception_dim=3)
 
         game = com_game.NoisyChannelContRewardGame(com_noise=params_v[exp.axes['com_noise']],
@@ -49,16 +50,16 @@ def main():
                                                    batch_size=exp.fixed_params['batch_size'],
                                                    print_interval=100)
 
-        game_outcome = exp.run(game.play, env, agent_a, agent_b)
+        game_outcome = exp.run(game.play, env.result(), agent_a, agent_b)
 
-        V = exp.run(env.agent_language_map, a=game_outcome.result())
+        V = exp.run(env, call_member='agent_language_map', a=game_outcome.result())
 
-        exp.run(env.plot_with_colors, V=V.result(), save_to_path='test.png')
+        exp.run(env, call_member='plot_with_colors', V=V.result(), save_to_path='test.png')
 
-        exp.set_result('gibson_cost', params_i, exp.run(env.compute_gibson_cost, a=game_outcome.result()))
-        exp.set_result('regier_cost', params_i, exp.run(env.communication_cost_regier, V=V.result(), sim=env.sim_np))
-        exp.set_result('wellformedness', params_i, exp.run(env.wellformedness, V=V.result(), sim=env.sim_np))
-        exp.set_result('term_usage', params_i, exp.run(env.compute_term_usage, V=V.result()))
+        exp.set_result('gibson_cost', params_i, exp.run(env, call_member='compute_gibson_cost', a=game_outcome.result()))
+        exp.set_result('regier_cost', params_i, exp.run(env, call_member='communication_cost_regier', V=V.result()))
+        exp.set_result('wellformedness', params_i, exp.run(env, call_member='wellformedness', V=V.result()))
+        exp.set_result('term_usage', params_i, exp.run(env, call_member='compute_term_usage', V=V.result()))
 
 
     print("\nAll tasks queued to clusters")

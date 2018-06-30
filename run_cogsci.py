@@ -21,24 +21,24 @@ def main():
 
     exp = Experiment(exp_name='cogsci',
                      fixed_params=[('env', 'wcs'),
-                                   ('max_epochs', 100),  #10000
+                                   ('max_epochs', 10000),  #10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(1)),  # 50
-                                   ('perception_noise', [0]),  # [0, 25, 50, 100]
-                                   ('msg_dim', range(3, 8))],  # range(3,12)
+                     param_ranges=[('avg_over', range(10)),  # 50
+                                   ('perception_noise', [0, 25, 50, 100]),  # [0, 25, 50, 100]
+                                   ('msg_dim', range(3, 12))],  # range(3,12)
                      queue=queue)
 
-    env = com_enviroments.make(exp.fixed_params['env'])
+    env = exp.run(com_enviroments.make, exp.fixed_params['env'])
 
     for (params_i, params_v) in exp:
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
 
         agent_a = agent_b = agents.BasicAgent(msg_dim=params_v[exp.axes['msg_dim']],
                                               hidden_dim=exp.fixed_params['hidden_dim'],
-                                              color_dim=env.data_dim(),
+                                              color_dim=330,#env.data_dim(),
                                               perception_dim=exp.fixed_params['perception_dim'])
 
         game = com_game.OneHotChannelContRewardGame(reward_func='regier_reward',
@@ -51,15 +51,15 @@ def main():
                                                     perception_dim=exp.fixed_params['perception_dim'])
 
 
-        game_outcome = exp.run(game.play, env, agent_a, agent_b)
+        game_outcome = exp.run(game.play, env.result(), agent_a, agent_b)
 
-        V = exp.run(env.agent_language_map, a=game_outcome.result())
+        V = exp.run(env, call_member='agent_language_map', a=game_outcome.result())
 
-        exp.set_result('gibson_cost', params_i, exp.run(env.compute_gibson_cost, a=game_outcome.result()))
-        exp.set_result('regier_cost', params_i, exp.run(env.communication_cost_regier, V=V.result(), sim=env.sim_np))
-        exp.set_result('wellformedness', params_i, exp.run(env.wellformedness, V=V.result(), sim=env.sim_np))
+        exp.set_result('gibson_cost', params_i, exp.run(env, call_member='compute_gibson_cost', a=game_outcome.result()))
+        exp.set_result('regier_cost', params_i, exp.run(env, call_member='communication_cost_regier', V=V.result()))
+        exp.set_result('wellformedness', params_i, exp.run(env, call_member='wellformedness', V=V.result()))
         #exp.set_result('combined_criterion', params_i, exp.run(evaluate.combined_criterion, V=V.result(), sim=evaluate.sim_np))
-        exp.set_result('term_usage', params_i, exp.run(env.compute_term_usage, V=V.result()))
+        exp.set_result('term_usage', params_i, exp.run(env, call_member='compute_term_usage', V=V.result()))
 
 
     print("\nAll tasks queued to clusters")

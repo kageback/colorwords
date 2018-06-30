@@ -30,14 +30,17 @@ class BaseEnviroment:
 
         return V
 
-    def communication_cost_regier(self, V, sim, sum_over_whole_s=False, norm_over_s=False, weight_by_size=False):
+    def sim_np(self):
+        pass
+
+    def communication_cost_regier(self, V, sum_over_whole_s=False, norm_over_s=False, weight_by_size=False):
 
         s = {}
         for i in V.keys():
             s[i] = 0
             for j in V.keys():
                 if V[i] == V[j]:
-                    s[i] += sim(i, j)
+                    s[i] += self.sim_np(i, j)
 
         l = {}
         for t in V.keys():
@@ -71,17 +74,17 @@ class BaseEnviroment:
 
         return E
 
-    def wellformedness(self, V, sim):
+    def wellformedness(self, V):
         Sw = 0
         for i in V.keys():
             for j in V.keys():
                 if V[i] == V[j]:
-                    Sw += sim(i, j)
+                    Sw += self.sim_np(i, j)
         Da = 0
         for i in V.keys():
             for j in V.keys():
                 if V[i] != V[j]:
-                    Da += 1 - sim(i, j)
+                    Da += 1 - self.sim_np(i, j)
         W = Sw + Da
         return W
 
