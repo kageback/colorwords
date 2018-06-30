@@ -46,8 +46,8 @@ def plot_reiger_gibson(exp):
     gibson_cost = exp.to_numpy('gibson_cost', result_index=1)
     regier_cost = exp.to_numpy('regier_cost')
 
-    noise_values = exp.param_ranges['noise_range']
-    msg_dim_values = exp.param_ranges['msg_dim_range']
+    noise_values = exp.param_ranges['perception_noise']
+    msg_dim_values = exp.param_ranges['msg_dim']
 
     # Plot regier and gibson_cost
     fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
@@ -84,8 +84,8 @@ def plot_reiger_gibson(exp):
 
 def plot_wellformedness(exp):
     wellformedness = exp.to_numpy('wellformedness')
-    noise_values = exp.param_ranges['noise_range']
-    msg_dim_values = exp.param_ranges['msg_dim_range']
+    noise_values = exp.param_ranges['perception_noise']
+    msg_dim_values = exp.param_ranges['msg_dim']
 
     fig, ax = plt.subplots()
     for noise_i, noise_value in enumerate(noise_values):
@@ -104,8 +104,8 @@ def plot_wellformedness(exp):
 def plot_combined_criterion(exp):
     # plot combined_criterion
     combined_criterion = exp.to_numpy('combined_criterion')
-    noise_values = exp.param_ranges['noise_range']
-    msg_dim_values = exp.param_ranges['msg_dim_range']
+    noise_values = exp.param_ranges['perception_noise']
+    msg_dim_values = exp.param_ranges['msg_dim']
 
     fig, ax = plt.subplots()
     for noise_i, noise_value in enumerate(noise_values):
@@ -124,8 +124,8 @@ def plot_combined_criterion(exp):
 def plot_term_usage(exp):
     # plot term usage for all #words
     term_usage = exp.to_numpy('term_usage')
-    noise_values = exp.param_ranges['noise_range']
-    msg_dim_values = exp.param_ranges['msg_dim_range']
+    noise_values = exp.param_ranges['perception_noise']
+    msg_dim_values = exp.param_ranges['msg_dim']
 
     #noise_values = [noise_values[0]] + noise_values[2:-1]
     index = np.arange(len(msg_dim_values))

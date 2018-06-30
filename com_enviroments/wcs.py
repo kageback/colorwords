@@ -9,35 +9,10 @@ import matplotlib.lines as lines
 
 import torch
 import torchHelpers as th
+from com_enviroments.BaseEnviroment import BaseEnviroment
 
 
-def print_cnum(t):
-    return str(t['#cnum'].values[0])
-
-
-def print_index(t):
-    return str(t.index.values[0])
-
-def cielab2rgb(c):
-    from colormath.color_objects import LabColor, sRGBColor
-    from colormath.color_conversions import convert_color
-
-    lab = LabColor(c[0],c[1],c[2])
-    rgb = convert_color(lab, sRGBColor)
-
-    return np.array(rgb.get_value_tuple())
-
-
-# Reward functions
-
-def basic_reward(color_codes, color_guess):
-    _, I = color_guess.max(1)
-    reward = (color_codes == I).float() - (color_codes != I).float()
-    return reward
-
-
-class WCS_Enviroment:
-
+class WCS_Enviroment(BaseEnviroment):
     def __init__(self, wcs_path='data/') -> None:
         super().__init__()
 
@@ -51,56 +26,34 @@ class WCS_Enviroment:
                                   how='inner',
                                   on=['lang_num', 'term_abrev'])
 
-    def language_map(self, lang_num):
+    # Data
+    def full_batch(self):
+        return self.color_chips.index.values, self.cielab_map
+
+    def mini_batch(self, batch_size = 10):
+        batch = self.color_chips.sample(n=batch_size, replace=True)
+        return batch.index.values, batch[['L*', 'a*', 'b*']].values
+
+    def human_language_map(self, lang_num):
         l = self.term_nums.loc[self.term_nums.lang_num == lang_num]
         map = {chip_i: l.loc[l.chip_num == self.color_chips.loc[chip_i]['#cnum']]['term_num'].mode().values[0] for chip_i in range(330)}
         return map
-
     #Iduna (lang_num47)
     #map = language_map(47)
 
-    def all_colors(self):
-        return self.color_chips.index.values, self.cielab_map
+    # Properties
 
-
-    def batch(self, batch_size = 10):
-        batch = self.color_chips.sample(n=batch_size, replace=True)
-
-        return batch.index.values, batch[['L*', 'a*', 'b*']].values
-
-
-    def color_dim(self):
+    def data_dim(self):
         return len(self.color_chips)
-
 
     def chip_index2CIELAB(self, color_codes):
         return self.cielab_map[color_codes]
 
-
-    # Printing
-
-    def print_color_map(self, f=print_cnum, pad=3):
-        # print x axsis
-        print(''.ljust(pad), end="")
-        for x in range(41):
-            print(str(x).ljust(pad), end="")
-        print('')
-
-        # print color codes
-        for y in list('ABCDEFGHIJ'):
-            print(y.ljust(pad), end="")
-            for x in range(41):
-                t = self.color_chips.loc[(self.color_chips['H'] == x) & (self.color_chips['V'] == y)]
-                if len(t) == 0:
-                    s = ''
-                elif len(t) == 1:
-                    s = f(t)
-                else:
-                    raise TabError()
-
-                print(s.ljust(pad), end="")
-            print('')
-
+    # Reward functions
+    def basic_reward(self, color_codes, color_guess):
+        _, I = color_guess.max(1)
+        reward = (color_codes == I).float() - (color_codes != I).float()
+        return reward
 
     def regier_reward(self, color, color_guess):
         _, color_code_guess = color_guess.max(1)
@@ -118,10 +71,21 @@ class WCS_Enviroment:
         # Regier similarity
         return torch.exp(-c * torch.pow(self.dist(color_x, color_y), 2))
 
-    # plotting
 
+    def sim_np(wcs, chip_index_x, chip_index_y, c=0.001):
+        # sim func used for computing the evaluation metrics
+        color_x = wcs.cielab_map[chip_index_x]
+        color_y = wcs.cielab_map[chip_index_y]
+
+        # CIELAB distance 76 (euclidean distance)
+        d = np.linalg.norm(color_x - color_y, 2)
+
+        # Regier color similarity
+        return np.exp(-c * np.power(d, 2))
+
+    # plotting
     def plot_with_colors(self, V, save_to_path='dev.png', y_wcs_range='ABCDEFGHIJ', x_wcs_range=range(0, 41), use_real_color=True):
-        #print_color_map(print_index, 4)
+        #self.print_color_map(f=lambda t: str(t.index.values[0]), pad=4)
 
         N_x = len(x_wcs_range)
         N_y = len(y_wcs_range)
@@ -136,15 +100,12 @@ class WCS_Enviroment:
                     rgb[y, x, :] = np.array([1, 1, 1])
                 elif len(t) == 1:
                     word[y, x] = V[t.index.values[0]]
-                    rgb[y, x, :] = cielab2rgb(t[['L*', 'a*', 'b*']].values[0])
+                    rgb[y, x, :] = self.cielab2rgb(t[['L*', 'a*', 'b*']].values[0])
                 else:
                     raise TabError()
 
         fig, ax = plt.subplots(1, 1, tight_layout=True)
-
-
         my_cmap = plt.get_cmap('tab20')
-
         bo = 0.2
         lw = 1.5
         for y in range(N_y):
@@ -167,9 +128,6 @@ class WCS_Enviroment:
                     if (y-1 >= 0 and word[y, x] != word[y-1, x]) or y-1 < 0:
                             ax.add_line(lines.Line2D([x+bo, x + 1-bo], [N_y - (y + bo), N_y - (y + bo)], color=word_color, ls=word_border, lw=lw))
 
-
-        #my_cmap = matplotlib.colors. ListedColormap(['r', 'g', 'b'])
-
         my_cmap.set_bad(color='w', alpha=0)
         data = rgb if use_real_color else word
         data = data.astype(np.float)
@@ -185,6 +143,35 @@ class WCS_Enviroment:
         plt.savefig(save_to_path)
         plt.close()
 
+    def cielab2rgb(self, c):
+        from colormath.color_objects import LabColor, sRGBColor
+        from colormath.color_conversions import convert_color
+        lab = LabColor(c[0], c[1], c[2])
+        rgb = convert_color(lab, sRGBColor)
+        return np.array(rgb.get_value_tuple())
+
+    # Printing
+    def print_color_map(self, f=lambda t: str(t['#cnum'].values[0]), pad=3):
+        # print x axsis
+        print(''.ljust(pad), end="")
+        for x in range(41):
+            print(str(x).ljust(pad), end="")
+        print('')
+
+        # print color codes
+        for y in list('ABCDEFGHIJ'):
+            print(y.ljust(pad), end="")
+            for x in range(41):
+                t = self.color_chips.loc[(self.color_chips['H'] == x) & (self.color_chips['V'] == y)]
+                if len(t) == 0:
+                    s = ''
+                elif len(t) == 1:
+                    s = f(t)
+                else:
+                    raise TabError()
+
+                print(s.ljust(pad), end="")
+            print('')
 
 
 

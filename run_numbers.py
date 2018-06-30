@@ -38,9 +38,9 @@ def main():
         print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
 
         agent_a = agent_b = agents.BasicAgent(msg_dim=params_v[exp.axes['msg_dim']],
-                                                hidden_dim=exp.fixed_params['hidden_dim'],
-                                                color_dim=env.color_dim(),
-                                                perception_dim=3)
+                                              hidden_dim=exp.fixed_params['hidden_dim'],
+                                              color_dim=env.data_dim(),
+                                              perception_dim=3)
 
 
         game = com_game.NoisyChannelContRewardGame(com_noise=params_v[exp.axes['com_noise']],

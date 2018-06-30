@@ -22,7 +22,6 @@ class BaseGame:
         self.print_interval = print_interval
 
     def play(self, env, agent_a, agent_b):
-
         agent_a = th.cuda(agent_a)
         agent_b = th.cuda(agent_b)
 
@@ -31,7 +30,7 @@ class BaseGame:
         for i in range(self.max_epochs):
             optimizer.zero_grad()
 
-            color_codes, colors = env.batch(batch_size=self.batch_size)
+            color_codes, colors = env.mini_batch(batch_size=self.batch_size)
             color_codes = th.long_var(color_codes)
             colors = th.float_var(colors)
 
@@ -142,9 +141,9 @@ class OneHotChannelContRewardGame(BaseGame):
         guess = agent_b(msg=msg)
         # compute reward
         if self.reward_func == 'basic_reward':
-            reward = self.env.basic_reward(target, guess)
+            reward = env.basic_reward(target, guess)
         elif self.reward_func == 'regier_reward':
-            reward = self.env.regier_reward(perception, guess)
+            reward = env.regier_reward(perception, guess)
         self.sum_reward += reward.sum()
         # compute loss
         self.loss_sender = self.sender_loss_multiplier * ((-m.log_prob(msg) * reward).sum() / self.batch_size)
