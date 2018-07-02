@@ -11,24 +11,26 @@ import agents
 def main():
 
 
-    #queue = Local()
+    queue = Local()
     #queue = Queue(cluster_wd='~/runtime/colorwords/', host='titan.kageback.se', ge_gpu=1, queue_limit=4)
     #queue = Queue(cluster_wd='~/runtime/colorwords/', host='home.kageback.se', queue_limit=4)
-    queue = Queue(cluster_wd='~/runtime/colorwords/', host='ttitania.ce.chalmers.se', user='mlusers', queue_limit=4)
+    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='ttitania.ce.chalmers.se', user='mlusers', queue_limit=4)
 
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
 
     exp = Experiment(exp_name='cogsci',
                      fixed_params=[('env', 'wcs'),
-                                   ('max_epochs', 10000),  #10000
+                                   ('max_epochs', 1000),  #10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
+                                   ('target_dim', 330),
+                                   ('sender_loss_multiplier', 100),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(10)),  # 50
-                                   ('perception_noise', [0, 25, 50, 100]),  # [0, 25, 50, 100]
-                                   ('msg_dim', range(3, 12))],  # range(3,12)
+                     param_ranges=[('avg_over', range(2)),  # 50
+                                   ('perception_noise', [0, 25, 50]),  # [0, 25, 50, 100]
+                                   ('msg_dim', range(3, 8))],  # range(3,12)
                      queue=queue)
 
     env = exp.run(com_enviroments.make, exp.fixed_params['env'])
@@ -38,11 +40,11 @@ def main():
 
         agent_a = agent_b = agents.BasicAgent(msg_dim=params_v[exp.axes['msg_dim']],
                                               hidden_dim=exp.fixed_params['hidden_dim'],
-                                              color_dim=330,#env.data_dim(),
+                                              color_dim=exp.fixed_params['target_dim'],
                                               perception_dim=exp.fixed_params['perception_dim'])
 
         game = com_game.OneHotChannelContRewardGame(reward_func='regier_reward',
-                                                    sender_loss_multiplier=100,
+                                                    sender_loss_multiplier=exp.fixed_params['sender_loss_multiplier'],
                                                     msg_dim=params_v[exp.axes['msg_dim']],
                                                     max_epochs=exp.fixed_params['max_epochs'],
                                                     perception_noise=params_v[exp.axes['perception_noise']],
@@ -58,7 +60,6 @@ def main():
         exp.set_result('gibson_cost', params_i, exp.run(env, call_member='compute_gibson_cost', a=game_outcome.result()))
         exp.set_result('regier_cost', params_i, exp.run(env, call_member='communication_cost_regier', V=V.result()))
         exp.set_result('wellformedness', params_i, exp.run(env, call_member='wellformedness', V=V.result()))
-        #exp.set_result('combined_criterion', params_i, exp.run(evaluate.combined_criterion, V=V.result(), sim=evaluate.sim_np))
         exp.set_result('term_usage', params_i, exp.run(env, call_member='compute_term_usage', V=V.result()))
 
 
@@ -72,7 +73,6 @@ def main():
     print('plot results')
     viz.plot_reiger_gibson(exp)
     viz.plot_wellformedness(exp)
-    #viz.plot_combined_criterion(exp)
     viz.plot_term_usage(exp)
 
 

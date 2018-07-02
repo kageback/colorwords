@@ -1,6 +1,4 @@
 import numpy as np
-
-import evaluate
 import gridengine as sge
 import com_game
 import viz
@@ -10,7 +8,6 @@ from gridengine.queue import Queue, Local
 import com_enviroments
 import agents
 
-from com_enviroments.wcs import WCS_Enviroment
 def main():
 
 
@@ -24,13 +21,17 @@ def main():
 
     exp = Experiment(exp_name='noisy_channel',
                      fixed_params=[('env', 'wcs'),
-                                   ('perception_noise', 0),
-                                   ('max_epochs', 100),  #10000
+                                   ('max_epochs', 1000),  #10000
                                    ('hidden_dim', 20),
-                                   ('batch_size', 100)],
-                     param_ranges=[('avg_over', range(1)),
-                                   ('msg_dim', range(6, 7)),  # 50
-                                   ('com_noise', np.linspace(start=0, stop=1.5, num=2))],  # np.logspace(-2, 2, 10)
+                                   ('batch_size', 100),
+                                   ('perception_dim', 3),
+                                   ('target_dim', 330),
+                                   ('perception_noise', 0),
+                                   ('print_interval', 1000)],
+                     param_ranges=[('avg_over', range(1)),  # 50
+                                   ('perception_noise', [0, 25]),  # [0, 25, 50, 100],
+                                   ('msg_dim', range(3, 4)), #3, 12
+                                   ('com_noise', [0])], #np.linspace(start=0, stop=1.5, num=1))],
                      queue=queue)
 
     env = exp.run(com_enviroments.make, exp.fixed_params['env'])
@@ -40,15 +41,15 @@ def main():
 
         agent_a = agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
                                                 hidden_dim=exp.fixed_params['hidden_dim'],
-                                                color_dim=330,#env.data_dim(),
-                                                perception_dim=3)
+                                                color_dim=exp.fixed_params['target_dim'],
+                                                perception_dim=exp.fixed_params['perception_dim'])
 
         game = com_game.NoisyChannelContRewardGame(com_noise=params_v[exp.axes['com_noise']],
                                                    msg_dim=params_v[exp.axes['msg_dim']],
                                                    max_epochs=exp.fixed_params['max_epochs'],
                                                    perception_noise=exp.fixed_params['perception_noise'],
                                                    batch_size=exp.fixed_params['batch_size'],
-                                                   print_interval=100)
+                                                   print_interval=exp.fixed_params['print_interval'])
 
         game_outcome = exp.run(game.play, env.result(), agent_a, agent_b)
 
@@ -71,9 +72,9 @@ def main():
 
     print('plot results')
     viz.plot_com_noise_cost(exp)
-    #viz.plot_reiger_gibson(exp)
-    #viz.plot_wellformedness(exp)
-    #viz.plot_term_usage(exp)
+    viz.plot_reiger_gibson(exp)
+    viz.plot_wellformedness(exp)
+    viz.plot_term_usage(exp)
 
 
 if __name__ == "__main__":

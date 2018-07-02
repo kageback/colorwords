@@ -18,16 +18,17 @@ from com_enviroments import wcs
 
 
 def plot_com_noise_cost(exp):
-    avg_axis = exp.axes['avg_over']
-    gibson_cost = exp.to_numpy('gibson_cost', result_index=1)
+    gibson_cost_avg = exp.get_reduced('gibson_cost', task_result_index=1, keep_axes_named=['msg_dim', 'com_noise'], reduce_method='avg')
+    gibson_cost_std = exp.get_reduced('gibson_cost', task_result_index=1, keep_axes_named=['msg_dim', 'com_noise'], reduce_method='std')
+
     com_noise = exp.param_ranges['com_noise']
     msg_dim = exp.param_ranges['msg_dim']
 
     fig, ax = plt.subplots()
     for msg_dim_i, msg_dim_value in enumerate(msg_dim):
 
-        l = gibson_cost[:, msg_dim_i, :].mean(avg_axis)
-        std_l = gibson_cost[:, msg_dim_i, :].std(avg_axis) / 4
+        l = gibson_cost_avg[msg_dim_i, :]
+        std_l = gibson_cost_std[msg_dim_i, :] / 4
 
         ax.plot(com_noise, l,  '.', label='terms=' + str(msg_dim_value))
         ax.fill_between(com_noise, l - std_l, l + std_l, alpha=0.2)
@@ -41,10 +42,11 @@ def plot_com_noise_cost(exp):
     
 
 def plot_reiger_gibson(exp):
-    avg_axis = exp.axes['avg_over']
+    regier_cost_avg = exp.get_reduced('regier_cost', keep_axes_named=['msg_dim', 'perception_noise'], reduce_method='avg')
+    regier_cost_std = exp.get_reduced('regier_cost', keep_axes_named=['msg_dim', 'perception_noise'], reduce_method='std')
 
-    gibson_cost = exp.to_numpy('gibson_cost', result_index=1)
-    regier_cost = exp.to_numpy('regier_cost')
+    gibson_cost_avg = exp.get_reduced('gibson_cost', task_result_index=1, keep_axes_named=['msg_dim', 'perception_noise'], reduce_method='avg')
+    gibson_cost_std = exp.get_reduced('gibson_cost', task_result_index=1, keep_axes_named=['msg_dim', 'perception_noise'], reduce_method='std')
 
     noise_values = exp.param_ranges['perception_noise']
     msg_dim_values = exp.param_ranges['msg_dim']
@@ -53,17 +55,16 @@ def plot_reiger_gibson(exp):
     fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
 
     for noise_i, noise_value in enumerate(noise_values):
-
-        l = regier_cost[:, noise_i, :].mean(avg_axis)
-        std_l = regier_cost[:, noise_i, :].std(avg_axis) / 4
+        l = regier_cost_avg[:, noise_i]
+        std_l = regier_cost_std[:, noise_i] / 4
         ax[0].plot(msg_dim_values, l,  '.', label='$\sigma^2=' + str(noise_value) + '$')
         ax[0].fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax[0].legend()
     ax[0].set_title('Communication cost (bits)')
 
     for noise_i, noise_value in enumerate(noise_values):
-        l = gibson_cost[:, noise_i, :].mean(0)
-        std_l = gibson_cost[:, noise_i, :].std(0) / 4
+        l = gibson_cost_avg[:, noise_i]
+        std_l = gibson_cost_std[:, noise_i] / 4
         ax[1].plot(msg_dim_values, l, '.', label='$\sigma^2=' + str(noise_value) + '$')
         ax[1].fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax[1].legend()
@@ -83,14 +84,16 @@ def plot_reiger_gibson(exp):
 
 
 def plot_wellformedness(exp):
-    wellformedness = exp.to_numpy('wellformedness')
+    wellformedness_avg = exp.get_reduced('wellformedness', keep_axes_named=['msg_dim', 'perception_noise'], reduce_method='avg')
+    wellformedness_std = exp.get_reduced('wellformedness', keep_axes_named=['msg_dim', 'perception_noise'], reduce_method='std')
+
     noise_values = exp.param_ranges['perception_noise']
     msg_dim_values = exp.param_ranges['msg_dim']
 
     fig, ax = plt.subplots()
     for noise_i, noise_value in enumerate(noise_values):
-        l = wellformedness[:, noise_i, :].mean(0)
-        std_l = wellformedness[:, noise_i, :].std(0) / 4
+        l = wellformedness_avg[:, noise_i]
+        std_l = wellformedness_std[:, noise_i] / 4
         ax.plot(msg_dim_values, l,  '.', label='$\sigma^2=' + str(noise_value) + '$')
         ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
     ax.legend()
@@ -101,29 +104,11 @@ def plot_wellformedness(exp):
     plt.savefig(fig_name)
 
 
-def plot_combined_criterion(exp):
-    # plot combined_criterion
-    combined_criterion = exp.to_numpy('combined_criterion')
-    noise_values = exp.param_ranges['perception_noise']
-    msg_dim_values = exp.param_ranges['msg_dim']
-
-    fig, ax = plt.subplots()
-    for noise_i, noise_value in enumerate(noise_values):
-        l = combined_criterion[:, noise_i, :].mean(0)
-        std_l = combined_criterion[:, noise_i, :].std(0) / 4
-        ax.plot(msg_dim_values, l, '.' ,label='$\sigma^2=' + str(noise_value) + '$')
-        ax.fill_between(msg_dim_values, l - std_l, l + std_l, alpha=0.2)
-    ax.legend()
-    plt.xlabel('Number of color words')
-    plt.ylabel('Combined criterion')
-
-    fig_name = exp.pipeline_path + '/fig_combined_criterion.png'
-    plt.savefig(fig_name)
-
-
 def plot_term_usage(exp):
     # plot term usage for all #words
-    term_usage = exp.to_numpy('term_usage')
+    term_usage_avg = exp.get_reduced('term_usage', keep_axes_named=['msg_dim', 'perception_noise'], reduce_method='avg')
+    term_usage_std = exp.get_reduced('term_usage', keep_axes_named=['msg_dim', 'perception_noise'], reduce_method='std')
+    #term_usage = exp.to_numpy('term_usage')
     noise_values = exp.param_ranges['perception_noise']
     msg_dim_values = exp.param_ranges['msg_dim']
 
@@ -132,8 +117,8 @@ def plot_term_usage(exp):
     fig, ax = plt.subplots()
     # dim_values_used = [5,6,7,8,9,10,11]
     for msg_dim_i, msg_dim_value in enumerate(msg_dim_values):
-        l = term_usage[:, :, msg_dim_i].mean(0)
-        std_l = term_usage[:, :, msg_dim_i].std(0) / 4
+        l = term_usage_avg[msg_dim_i, :]
+        std_l = term_usage_std[msg_dim_i, :] / 4
 
         ax.plot(noise_values, l, '.', label='terms$\leq$' + str(msg_dim_value))
         ax.fill_between(noise_values, l - std_l, l + std_l, alpha=0.2)
