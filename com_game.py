@@ -59,6 +59,7 @@ class BaseGame:
 class NoisyChannelContRewardGame(BaseGame):
 
     def __init__(self,
+                 reward_func='regier_reward',
                  com_noise=0,
                  msg_dim=11,
                  max_epochs=1000,
@@ -67,7 +68,7 @@ class NoisyChannelContRewardGame(BaseGame):
                  print_interval=1000,
                  perception_dim=3):
         super().__init__(max_epochs, batch_size, print_interval)
-
+        self.reward_func = reward_func
         self.com_noise = com_noise
         self.msg_dim = msg_dim
         self.perception_noise = perception_noise
@@ -94,9 +95,12 @@ class NoisyChannelContRewardGame(BaseGame):
         guess = m.sample()
 
         #compute reward
-
-        CIELAB_guess = th.float_var(env.chip_index2CIELAB(guess.data))
-        reward = env.sim(perception, CIELAB_guess)
+        if self.reward_func == 'regier_reward':
+            CIELAB_guess = th.float_var(env.chip_index2CIELAB(guess.data))
+            reward = env.sim(perception, CIELAB_guess)
+        elif self.reward_func == 'RMS_reward':
+            diff = perception - guess.unsqueeze(dim=1).float()
+            reward = 100-torch.sqrt(torch.pow(diff, 2))
 
         #reward = env.regier_reward(perception, guess_probs)
 

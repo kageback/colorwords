@@ -12,8 +12,6 @@ class BaseEnviroment:
     def mini_batch(self, batch_size=10):
         pass
 
-    def data_dim(self):
-        pass
 
     # Language map based metrics
     def agent_language_map(self, a):
