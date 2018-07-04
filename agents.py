@@ -40,9 +40,16 @@ class SoftmaxAgent(BasicAgent):
 
     def forward(self, perception=None, msg=None, tau=1):
 
-        if msg is not None and type(msg.data) == torch.LongTensor:
-            onehot = torch.FloatTensor(len(msg), self.msg_dim)
-            onehot.zero_()
-            msg = Variable(onehot.scatter_(1, msg.data.unsqueeze(1), 1))
+        if msg is not None:
+            # First make discrete input into a onehot distribution (used for eval)
+            if type(msg.data) == torch.LongTensor:
+                onehot = torch.FloatTensor(len(msg), self.msg_dim)
+                onehot.zero_()
+                msg = Variable(onehot.scatter_(1, msg.data.unsqueeze(1), 1))
 
-        return super().forward(perception, msg, tau)
+            h = F.tanh(self.msg_receiver(msg))
+            color_logits = self.color_estimator(h)
+            return F.softmax(color_logits, dim=1)
+
+        else:
+            return super().forward(perception, msg, tau)

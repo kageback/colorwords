@@ -17,7 +17,39 @@ import matplotlib.pyplot as plt
 from com_enviroments import wcs
 
 
+def plot_result(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None, task_result_index=0):
+    if measure_label is None:
+        measure_label = measure_id.replace('_', ' ')
+    if x_label is None:
+        x_label = x_id.replace('_', ' ')
+    if z_label is None:
+        z_label = z_id.replace('_', ' ')
+
+    y_avg = exp.get_reduced(measure_id, task_result_index=task_result_index, keep_axes_named=[x_id, z_id], reduce_method='avg')
+    y_std = exp.get_reduced(measure_id, task_result_index=task_result_index, keep_axes_named=[x_id, z_id], reduce_method='std')
+
+    x = exp.param_ranges[x_id]
+    z = exp.param_ranges[z_id]
+
+    fig, ax = plt.subplots()
+    for z_i, z_value in enumerate(z):
+
+        l = y_avg[:,z_i]
+        std_l = y_std[:, z_i] / 4
+
+        ax.plot(x, l,  '.', label=z_label + '=' + str(z_value))
+        ax.fill_between(x, l - std_l, l + std_l, alpha=0.2)
+
+    ax.legend()
+    plt.ylabel(measure_label)
+    plt.xlabel(x_label)
+
+    fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + x_id + '_for_' +  z_id +'.png'
+    plt.savefig(fig_name)
+
+
 def plot_com_noise_cost(exp):
+
     gibson_cost_avg = exp.get_reduced('gibson_cost', task_result_index=1, keep_axes_named=['msg_dim', 'com_noise'], reduce_method='avg')
     gibson_cost_std = exp.get_reduced('gibson_cost', task_result_index=1, keep_axes_named=['msg_dim', 'com_noise'], reduce_method='std')
 

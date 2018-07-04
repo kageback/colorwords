@@ -21,6 +21,8 @@ class BaseGame:
         self.batch_size = batch_size
         self.print_interval = print_interval
 
+        self.training_mode = True
+
     def play(self, env, agent_a, agent_b):
         agent_a = th.cuda(agent_a)
         agent_b = th.cuda(agent_b)
@@ -75,15 +77,17 @@ class NoisyChannelContRewardGame(BaseGame):
 
     def communication_channel(self, env, agent_a, agent_b, target, perception):
         # add perceptual noise
-        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
-                                    torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
-        perception = perception# + noise
+        if self.training_mode:
+            noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
+                                        torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
+            perception = perception + noise
         # generate message
         msg_probs = agent_a(perception=perception)
         # add communication noise
-        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.msg_dim),
-                                    torch.ones(self.batch_size, self.msg_dim) * self.com_noise).sample())
-        msg = msg_probs# + noise
+        if self.training_mode:
+            noise = th.float_var(Normal(torch.zeros(self.batch_size, self.msg_dim),
+                                        torch.ones(self.batch_size, self.msg_dim) * self.com_noise).sample())
+            msg = msg_probs + noise
         # interpret message and sample a guess
         guess_probs = agent_b(msg=msg)
         m = Categorical(guess_probs)
@@ -130,9 +134,10 @@ class OneHotChannelContRewardGame(BaseGame):
 
     def communication_channel(self, env, agent_a, agent_b, target, perception):
         # add perceptual noise
-        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
-                                    torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
-        perception = perception + noise
+        if self.training_mode:
+            noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
+                                        torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
+            perception = perception + noise
         # Sample message
         probs = agent_a(perception=perception)
         m = Categorical(probs)
