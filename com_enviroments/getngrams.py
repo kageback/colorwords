@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*
 # This code is based on https://github.com/econpy/google-ngrams
 from ast import literal_eval
@@ -152,7 +151,9 @@ def runQuery(argumentString):
             print(warningMessage)
 
 if __name__ == '__main__':
-
+    #runQuery(','.join([str(i) for i in range(2)]))
+    _, _, df = getNgrams(','.join([str(i) for i in range(2)]), 'eng_2012', 1999, 2000, smoothing=3, caseInsensitive=False)
+    data = df.loc[1]
 
     argumentString = ' '.join(sys.argv[1:])
     if argumentString == '':

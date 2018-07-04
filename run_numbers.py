@@ -11,9 +11,9 @@ import agents
 def run():
 
 
-    #queue = Local()
+    queue = Local()
     #queue = Queue(cluster_wd='~/runtime/colorwords/', host='titan.kageback.se', ge_gpu=1, queue_limit=4)
-    queue = Queue(cluster_wd='~/runtime/colorwords/', host='home.kageback.se', queue_limit=4)
+    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='home.kageback.se', queue_limit=4)
     #queue = Queue(cluster_wd='~/runtime/colorwords/', host='ttitania.ce.chalmers.se', user='mlusers', queue_limit=4)
 
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
@@ -27,10 +27,10 @@ def run():
                                    ('perception_dim', 1),
                                    ('target_dim', 100),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(10)),  # 50
+                     param_ranges=[('avg_over', range(1)),  # 50
                                    ('perception_noise', [0]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(10, 12)), #3, 12
-                                   ('com_noise', np.linspace(start=0, stop=0.5, num=20))],
+                                   ('msg_dim', range(10, 11)), #3, 12
+                                   ('com_noise', np.linspace(start=0, stop=0.5, num=5))],
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -58,7 +58,7 @@ def run():
         game_outcome = exp.run(game.play, env.result(), agent_a, agent_b)
 
         V = exp.run(env, call_member='agent_language_map', a=game_outcome.result())
-
+        #exp.run(env, call_member='print_ranges', V=V.result())
         exp.set_result('gibson_cost', params_i, exp.run(env, call_member='compute_gibson_cost', a=game_outcome.result()))
         exp.set_result('regier_cost', params_i, exp.run(env, call_member='communication_cost_regier', V=V.result()))
         exp.set_result('wellformedness', params_i, exp.run(env, call_member='wellformedness', V=V.result()))
@@ -78,8 +78,7 @@ def visualize(pipeline_name):
     print('plot results')
     exp = Experiment.load(pipeline_name)
 
-    viz.plot_result(exp,
-                    'gibson_cost', 'com_noise', 'msg_dim',
+    viz.plot_result(exp, 'gibson_cost', 'com_noise', 'msg_dim',
                     measure_label='Gibson communication efficiency',
                     x_label='Communication noise',
                     z_label='terms',
