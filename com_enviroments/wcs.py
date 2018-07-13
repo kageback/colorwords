@@ -11,10 +11,21 @@ import torch
 import torchHelpers as th
 from com_enviroments.BaseEnviroment import BaseEnviroment
 
+import urllib.request as request
+import os
 
 class WCS_Enviroment(BaseEnviroment):
     def __init__(self, wcs_path='data/') -> None:
         super().__init__()
+
+        baseurl = 'http://www1.icsi.berkeley.edu/wcs/data/'
+        self.get_data(baseurl + 'cnum-maps/cnum-vhcm-lab-new.txt', 'data/cnum-vhcm-lab-new.txt')
+        self.get_data(baseurl + '20021219/txt/term.txt', 'data/term.txt')
+        self.get_data(baseurl + '20041016/txt/dict.txt', 'data/dict.txt')
+
+        # http://www1.icsi.berkeley.edu/wcs/data/cnum-maps/cnum-vhcm-lab-new.txt
+        # http://www1.icsi.berkeley.edu/wcs/data/20021219/txt/term.txt
+        # http://www1.icsi.berkeley.edu/wcs/data/20041016/txt/dict.txt
 
         self.color_chips = pd.read_csv(wcs_path + 'cnum-vhcm-lab-new.txt', sep='\t')
         self.cielab_map = self.color_chips[['L*', 'a*', 'b*']].values
@@ -25,6 +36,12 @@ class WCS_Enviroment(BaseEnviroment):
                                   self.dict.drop_duplicates(subset=['lang_num', 'term_abrev']),
                                   how='inner',
                                   on=['lang_num', 'term_abrev'])
+
+    def get_data(self, url, local_name):
+        if not os.path.exists(local_name):
+            print('Downloading ' + url)
+            print('saved as ' + local_name)
+            request.urlretrieve(url , local_name)
 
     # Data
     def full_batch(self):
