@@ -48,6 +48,9 @@ def plot_result(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z
     plt.savefig(fig_name)
 
 
+def print_ranges(exp, env):
+    pass
+
 def plot_com_noise_cost(exp):
 
     gibson_cost_avg = exp.get_reduced('gibson_cost', task_result_index=1, keep_axes_named=['msg_dim', 'com_noise'], reduce_method='avg')

@@ -21,16 +21,17 @@ def run():
 
     exp = Experiment(exp_name='num_dev',
                      fixed_params=[('env', 'numbers'),
-                                   ('max_epochs', 10000),  #10000
+                                   ('max_epochs', 100000),  #10000
                                    ('hidden_dim', 20),
-                                   ('batch_size', 10),
+                                   ('batch_size', 1000),
                                    ('perception_dim', 1),
                                    ('target_dim', 100),
                                    ('print_interval', 1000)],
                      param_ranges=[('avg_over', range(1)),  # 50
                                    ('perception_noise', [0]),  # [0, 25, 50, 100],
                                    ('msg_dim', range(10, 11)), #3, 12
-                                   ('com_noise', np.linspace(start=0, stop=0.5, num=5))],
+                                   ('com_noise', [0.5])#np.linspace(start=0, stop=0.5, num=5))
+                                   ],
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -46,23 +47,26 @@ def run():
                                                 color_dim=exp.fixed_params['target_dim'],
                                                 perception_dim=exp.fixed_params['perception_dim'])
 
-        game = com_game.NoisyChannelContRewardGame(reward_func='RMS_reward',
-                                                   com_noise=params_v[exp.axes['com_noise']],
-                                                   msg_dim=params_v[exp.axes['msg_dim']],
-                                                   max_epochs=exp.fixed_params['max_epochs'],
-                                                   perception_noise=params_v[exp.axes['perception_noise']],
-                                                   batch_size=exp.fixed_params['batch_size'],
-                                                   print_interval=exp.fixed_params['print_interval'],
-                                                   perception_dim=exp.fixed_params['perception_dim'])
+        game = com_game.NoisyChannelGame(reward_func='RMS_reward',
+                                         com_noise=params_v[exp.axes['com_noise']],
+                                         msg_dim=params_v[exp.axes['msg_dim']],
+                                         max_epochs=exp.fixed_params['max_epochs'],
+                                         perception_noise=params_v[exp.axes['perception_noise']],
+                                         batch_size=exp.fixed_params['batch_size'],
+                                         print_interval=exp.fixed_params['print_interval'],
+                                         perception_dim=exp.fixed_params['perception_dim'])
 
         game_outcome = exp.run(game.play, env.result(), agent_a, agent_b)
 
-        V = exp.run(env, call_member='agent_language_map', a=game_outcome.result())
-        #exp.run(env, call_member='print_ranges', V=V.result())
-        exp.set_result('gibson_cost', params_i, exp.run(env, call_member='compute_gibson_cost', a=game_outcome.result()))
-        exp.set_result('regier_cost', params_i, exp.run(env, call_member='communication_cost_regier', V=V.result()))
-        exp.set_result('wellformedness', params_i, exp.run(env, call_member='wellformedness', V=V.result()))
-        exp.set_result('term_usage', params_i, exp.run(env, call_member='compute_term_usage', V=V.result()))
+        V = exp.run(game.agent_language_map, env.result(), a=game_outcome.result())
+
+        #V = exp.run(env, call_member='agent_language_map', a=game_outcome.result())
+
+        exp.set_result('agent_language_map', params_i, V)
+        exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env.result(), a=game_outcome.result()))
+        exp.set_result('regier_cost', params_i, exp.run(game.communication_cost_regier, env.result(), V=V.result()))
+        exp.set_result('wellformedness', params_i, exp.run(game.wellformedness, env.result(), V=V.result()))
+        exp.set_result('term_usage', params_i, exp.run(game.compute_term_usage, V=V.result()))
 
 
     print("\nAll tasks queued to clusters")
@@ -78,6 +82,10 @@ def visualize(pipeline_name):
     print('plot results')
     exp = Experiment.load(pipeline_name)
 
+    V_mode = com_game.BaseGame.reduce_maps('agent_language_map', exp, reduce_method='mode')
+    ranges = com_game.BaseGame.compute_ranges(V_mode)
+    print(ranges)
+    # exp.run(env, call_member='print_ranges', V=V.result())
     viz.plot_result(exp, 'gibson_cost', 'com_noise', 'msg_dim',
                     measure_label='Gibson communication efficiency',
                     x_label='Communication noise',

@@ -11,10 +11,10 @@ import agents
 def run():
 
 
-    #queue = Local()
+    queue = Local()
     #queue = Queue(cluster_wd='~/runtime/colorwords/', host='titan.kageback.se', ge_gpu=1, queue_limit=4)
     #queue = Queue(cluster_wd='~/runtime/colorwords/', host='home.kageback.se', queue_limit=4)
-    queue = Queue(cluster_wd='~/runtime/colorwords/', host='ttitania.ce.chalmers.se', user='mlusers', queue_limit=4)
+    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='ttitania.ce.chalmers.se', user='mlusers', queue_limit=4)
 
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
@@ -46,12 +46,12 @@ def run():
                                                 color_dim=exp.fixed_params['target_dim'],
                                                 perception_dim=exp.fixed_params['perception_dim'])
 
-        game = com_game.NoisyChannelContRewardGame(com_noise=params_v[exp.axes['com_noise']],
-                                                   msg_dim=params_v[exp.axes['msg_dim']],
-                                                   max_epochs=exp.fixed_params['max_epochs'],
-                                                   perception_noise=params_v[exp.axes['perception_noise']],
-                                                   batch_size=exp.fixed_params['batch_size'],
-                                                   print_interval=exp.fixed_params['print_interval'])
+        game = com_game.NoisyChannelGame(com_noise=params_v[exp.axes['com_noise']],
+                                         msg_dim=params_v[exp.axes['msg_dim']],
+                                         max_epochs=exp.fixed_params['max_epochs'],
+                                         perception_noise=params_v[exp.axes['perception_noise']],
+                                         batch_size=exp.fixed_params['batch_size'],
+                                         print_interval=exp.fixed_params['print_interval'])
 
         game_outcome = exp.run(game.play, env.result(), agent_a, agent_b)
 

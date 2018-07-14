@@ -44,14 +44,14 @@ def main():
                                               color_dim=exp.fixed_params['target_dim'],
                                               perception_dim=exp.fixed_params['perception_dim'])
 
-        game = com_game.OneHotChannelContRewardGame(reward_func='regier_reward',
-                                                    sender_loss_multiplier=exp.fixed_params['sender_loss_multiplier'],
-                                                    msg_dim=params_v[exp.axes['msg_dim']],
-                                                    max_epochs=exp.fixed_params['max_epochs'],
-                                                    perception_noise=params_v[exp.axes['perception_noise']],
-                                                    batch_size=exp.fixed_params['batch_size'],
-                                                    print_interval=exp.fixed_params['print_interval'],
-                                                    perception_dim=exp.fixed_params['perception_dim'])
+        game = com_game.OneHotChannelGame(reward_func='regier_reward',
+                                          sender_loss_multiplier=exp.fixed_params['sender_loss_multiplier'],
+                                          msg_dim=params_v[exp.axes['msg_dim']],
+                                          max_epochs=exp.fixed_params['max_epochs'],
+                                          perception_noise=params_v[exp.axes['perception_noise']],
+                                          batch_size=exp.fixed_params['batch_size'],
+                                          print_interval=exp.fixed_params['print_interval'],
+                                          perception_dim=exp.fixed_params['perception_dim'])
 
 
         game_outcome = exp.run(game.play, env.result(), agent_a, agent_b)
