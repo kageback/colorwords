@@ -64,7 +64,8 @@ class BaseGame:
         _, terms = probs.max(1)
 
         for perception_index in perception_indices:
-            V[perception_index] = terms[perception_index].cpu().data[0]
+            #V[perception_index] = terms[perception_index].cpu().data[0]
+            V[perception_index] = terms[perception_index].item()
 
         return V
 
@@ -156,7 +157,7 @@ class BaseGame:
 
     @staticmethod
     def reduce_maps(name, exp, reduce_method='mode'):
-        maps = exp.get_flattened(name)
+        maps = exp.get_flattened_results(name)
         np_maps = np.array([list(map.values()) for map in maps])
         if reduce_method == 'mode':
             np_mode_map = stats.mode(np_maps).mode[0]

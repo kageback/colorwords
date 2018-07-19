@@ -41,7 +41,7 @@ class WCS_Enviroment(BaseEnviroment):
         if not os.path.exists(local_name):
             print('Downloading ' + url)
             print('saved as ' + local_name)
-            request.urlretrieve(url , local_name)
+            request.urlretrieve(url, local_name)
 
     # Data
     def full_batch(self):

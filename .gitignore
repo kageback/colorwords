@@ -6,6 +6,7 @@ pipelines/
 save/
 old/jobs/
 python3*
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

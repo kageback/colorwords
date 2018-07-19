@@ -21,7 +21,7 @@ def run():
 
     exp = Experiment(exp_name='num_dev',
                      fixed_params=[('env', 'numbers'),
-                                   ('max_epochs', 100000),  #10000
+                                   ('max_epochs', 100),  #10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 1000),
                                    ('perception_dim', 1),
@@ -29,8 +29,8 @@ def run():
                                    ('print_interval', 1000)],
                      param_ranges=[('avg_over', range(1)),  # 50
                                    ('perception_noise', [0]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(10, 11)), #3, 12
-                                   ('com_noise', [0.5])#np.linspace(start=0, stop=0.5, num=5))
+                                   ('msg_dim', range(10, 12)), #3, 12
+                                   ('com_noise', [0.5,1])#np.linspace(start=0, stop=0.5, num=5))
                                    ],
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -62,11 +62,11 @@ def run():
 
         #V = exp.run(env, call_member='agent_language_map', a=game_outcome.result())
 
-        exp.set_result('agent_language_map', params_i, V)
-        exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env.result(), a=game_outcome.result()))
-        exp.set_result('regier_cost', params_i, exp.run(game.communication_cost_regier, env.result(), V=V.result()))
-        exp.set_result('wellformedness', params_i, exp.run(game.wellformedness, env.result(), V=V.result()))
-        exp.set_result('term_usage', params_i, exp.run(game.compute_term_usage, V=V.result()))
+        exp.set_result('agent_language_map', params_i, V.result())
+        exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env.result(), a=game_outcome.result()).result(1))
+        exp.set_result('regier_cost', params_i, exp.run(game.communication_cost_regier, env.result(), V=V.result()).result())
+        exp.set_result('wellformedness', params_i, exp.run(game.wellformedness, env.result(), V=V.result()).result())
+        exp.set_result('term_usage', params_i, exp.run(game.compute_term_usage, V=V.result()).result())
 
 
     print("\nAll tasks queued to clusters")
@@ -89,8 +89,7 @@ def visualize(pipeline_name):
     viz.plot_result(exp, 'gibson_cost', 'com_noise', 'msg_dim',
                     measure_label='Gibson communication efficiency',
                     x_label='Communication noise',
-                    z_label='terms',
-                    task_result_index=1)
+                    z_label='terms')
     viz.plot_result(exp, 'regier_cost', 'com_noise', 'msg_dim')
     viz.plot_result(exp, 'wellformedness', 'com_noise', 'msg_dim')
     viz.plot_result(exp, 'term_usage', 'com_noise', 'msg_dim')

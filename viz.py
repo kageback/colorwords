@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from com_enviroments import wcs
 
 
-def plot_result(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None, task_result_index=0):
+def plot_result(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None):
     if measure_label is None:
         measure_label = measure_id.replace('_', ' ')
     if x_label is None:
@@ -25,8 +25,8 @@ def plot_result(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z
     if z_label is None:
         z_label = z_id.replace('_', ' ')
 
-    y_avg = exp.get_reduced(measure_id, task_result_index=task_result_index, keep_axes_named=[x_id, z_id], reduce_method='avg')
-    y_std = exp.get_reduced(measure_id, task_result_index=task_result_index, keep_axes_named=[x_id, z_id], reduce_method='std')
+    y_avg = exp.get_reduced(measure_id, keep_axes_named=[x_id, z_id], reduce_method='avg')
+    y_std = exp.get_reduced(measure_id, keep_axes_named=[x_id, z_id], reduce_method='std')
 
     x = exp.param_ranges[x_id]
     z = exp.param_ranges[z_id]

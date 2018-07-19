@@ -42,7 +42,7 @@ class SoftmaxAgent(BasicAgent):
 
         if msg is not None:
             # First make discrete input into a onehot distribution (used for eval)
-            if type(msg.data) == torch.LongTensor:
+            if msg.data.type() == 'torch.LongTensor':
                 onehot = torch.FloatTensor(len(msg), self.msg_dim)
                 onehot.zero_()
                 msg = Variable(onehot.scatter_(1, msg.data.unsqueeze(1), 1))

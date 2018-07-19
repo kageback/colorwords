@@ -10,36 +10,24 @@ import agents
 
 def run():
 
-
-    queue = Local()
-    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='titan.kageback.se', ge_gpu=1, queue_limit=4)
-    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='home.kageback.se', queue_limit=4)
-    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='ttitania.ce.chalmers.se', user='mlusers', queue_limit=4)
-
-    queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
-               recursive=True)
-
-    exp = Experiment(exp_name='noisy_channel',
+    exp = Experiment(exp_name='local_experiment',
                      fixed_params=[('env', 'wcs'),
-                                   ('max_epochs', 100),  #10000
+                                   ('max_epochs', 10000),  #10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(1)),  # 50
-                                   ('perception_noise', [0]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(9, 10)), #3, 12
-                                   ('com_noise', np.linspace(start=0, stop=0.5, num=1))],
-                     queue=queue)
-    queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
+                     param_ranges=[('avg_over', range(2)),  # 50
+                                   ('perception_noise', [0, 25]),  # [0, 25, 50, 100],
+                                   ('msg_dim', range(9, 11)), #3, 12
+                                   ('com_noise', np.linspace(start=0, stop=0.5, num=2))])
 
-    env = exp.run(com_enviroments.make, exp.fixed_params['env'])
+    env = com_enviroments.make(exp.fixed_params['env'])
     exp_i = 0
     for (params_i, params_v) in exp:
         print('Scheduled %d experiments out of %d' % (exp_i, len(list(exp))))
         exp_i += 1
-        #print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
 
         agent_a = agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
                                                 hidden_dim=exp.fixed_params['hidden_dim'],
@@ -53,25 +41,20 @@ def run():
                                          batch_size=exp.fixed_params['batch_size'],
                                          print_interval=exp.fixed_params['print_interval'])
 
-        game_outcome = exp.run(game.play, env.result(), agent_a, agent_b)
+        game_outcome = game.play(env, agent_a, agent_b)
 
-        V = exp.run(game.agent_language_map, env.result(), a=game_outcome.result())
+        V = game.agent_language_map(env, a=game_outcome)
 
-        #exp.run(env, call_member='plot_with_colors', V=V.result(), save_to_path=exp.pipeline_path + 'language_map.png')
-
-        exp.set_result('agent_language_map', params_i, V.result())
-        exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env.result(), a=game_outcome.result()).result(1))
-        exp.set_result('regier_cost', params_i, exp.run(game.communication_cost_regier, env.result(), V=V.result()).result())
-        exp.set_result('wellformedness', params_i, exp.run(game.wellformedness, env.result(), V=V.result()).result())
-        exp.set_result('term_usage', params_i, exp.run(game.compute_term_usage, V=V.result()).result())
+        exp.set_result('gibson_cost', params_i, game.compute_gibson_cost(env, a=game_outcome)[1])
+        exp.set_result('regier_cost', params_i, game.communication_cost_regier(env, V=V))
+        exp.set_result('wellformedness', params_i, game.wellformedness(env, V=V))
+        exp.set_result('term_usage', params_i, game.compute_term_usage(V=V)[0])
 
 
     print("\nAll tasks queued to clusters")
 
     # wait for all tasks to complete
     exp.save()
-    exp.wait(retry_interval=5)
-    queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
     return exp.pipeline_name
 
