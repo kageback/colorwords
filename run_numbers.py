@@ -35,7 +35,7 @@ def run():
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
-    env = exp.run(com_enviroments.make, exp.fixed_params['env'])
+    env = exp.run(com_enviroments.make, exp.fixed_params['env']).result()
     exp_i = 0
     for (params_i, params_v) in exp:
         print('Scheduled %d experiments out of %d' % (exp_i, len(list(exp))))
@@ -56,17 +56,17 @@ def run():
                                          print_interval=exp.fixed_params['print_interval'],
                                          perception_dim=exp.fixed_params['perception_dim'])
 
-        game_outcome = exp.run(game.play, env.result(), agent_a, agent_b)
+        game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
 
-        V = exp.run(game.agent_language_map, env.result(), a=game_outcome.result())
+        V = exp.run(game.agent_language_map, env, a=game_outcome).result()
 
-        #V = exp.run(env, call_member='agent_language_map', a=game_outcome.result())
+        #V = exp.run(env, call_member='agent_language_map', a=game_outcome)
 
-        exp.set_result('agent_language_map', params_i, V.result())
-        exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env.result(), a=game_outcome.result()).result(1))
-        exp.set_result('regier_cost', params_i, exp.run(game.communication_cost_regier, env.result(), V=V.result()).result())
-        exp.set_result('wellformedness', params_i, exp.run(game.wellformedness, env.result(), V=V.result()).result())
-        exp.set_result('term_usage', params_i, exp.run(game.compute_term_usage, V=V.result()).result())
+        exp.set_result('agent_language_map', params_i, V)
+        exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env, a=game_outcome).result(1))
+        exp.set_result('regier_cost', params_i, exp.run(game.communication_cost_regier, env, V=V).result())
+        exp.set_result('wellformedness', params_i, exp.run(game.wellformedness, env, V=V).result())
+        exp.set_result('term_usage', params_i, exp.run(game.compute_term_usage, V=V).result())
 
 
     print("\nAll tasks queued to clusters")
