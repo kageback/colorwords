@@ -19,7 +19,7 @@ def run():
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
 
-    exp = Experiment(exp_name='noisy_channel',
+    exp = Experiment(exp_name='color_avg20',
                      fixed_params=[('env', 'wcs'),
                                    ('max_epochs', 10000),  #10000
                                    ('hidden_dim', 20),
@@ -27,10 +27,10 @@ def run():
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(10)),  # 50
-                                   ('perception_noise', [0]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(9, 11)), #3, 12
-                                   ('com_noise', np.linspace(start=0, stop=0.5, num=2))],
+                     param_ranges=[('avg_over', range(20)),  # 50
+                                   ('perception_noise', [0, 25, 50, 100]),  # [0, 25, 50, 100],
+                                   ('msg_dim', range(3, 12)), #3, 12
+                                   ('com_noise', np.linspace(start=0, stop=0.5, num=10))],
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -56,7 +56,7 @@ def run():
 
         V = exp.run(game.agent_language_map, env, a=game_outcome).result()
 
-        #exp.run(env, call_member='plot_with_colors', V=V, save_to_path=exp.pipeline_path + 'language_map.png')
+
 
         exp.set_result('agent_language_map', params_i, V)
         exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env, a=game_outcome).result(1))
@@ -92,6 +92,7 @@ def visualize(pipeline_name):
     viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'msg_dim')
     viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise')
 
+    #exp.run(env, call_member='plot_with_colors', V=V, save_to_path=exp.pipeline_path + 'language_map.png')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Color experiment')
