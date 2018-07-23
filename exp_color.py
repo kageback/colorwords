@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import gridengine as sge
 import com_game
@@ -93,5 +94,12 @@ def visualize(pipeline_name):
 
 
 if __name__ == "__main__":
-    pipeline_name = run()
-    visualize(pipeline_name)
+    parser = argparse.ArgumentParser(description='Color experiment')
+    parser.add_argument('--pipeline', type=str, default='',
+                        help='Name of existing pipeline to load for re-visualization')
+    args = parser.parse_args()
+
+    if args.pipeline == '':
+        args.pipeline = run()
+
+    visualize(args.pipeline)
