@@ -8,9 +8,8 @@ from gridengine.queue import Queue, Local
 import com_enviroments
 import agents
 
+
 def run():
-
-
     queue = Local()
     #queue = Queue(cluster_wd='~/runtime/colorwords/', host='titan.kageback.se', ge_gpu=1, queue_limit=4)
     #queue = Queue(cluster_wd='~/runtime/colorwords/', host='home.kageback.se', queue_limit=4)
@@ -21,13 +20,13 @@ def run():
 
     exp = Experiment(exp_name='noisy_channel',
                      fixed_params=[('env', 'wcs'),
-                                   ('max_epochs', 100),  #10000
+                                   ('max_epochs', 10000),  #10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(2)),  # 50
+                     param_ranges=[('avg_over', range(10)),  # 50
                                    ('perception_noise', [0]),  # [0, 25, 50, 100],
                                    ('msg_dim', range(9, 11)), #3, 12
                                    ('com_noise', np.linspace(start=0, stop=0.5, num=2))],
@@ -78,19 +77,19 @@ def visualize(pipeline_name):
     print('plot results')
     exp = Experiment.load(pipeline_name)
 
-    viz.plot_result(exp,
+    viz.plot_with_conf(exp,
                     'gibson_cost', 'com_noise', 'msg_dim',
                     measure_label='Gibson communication efficiency',
                     x_label='Communication noise',
                     z_label='terms')
-    viz.plot_result(exp, 'gibson_cost', 'perception_noise', 'msg_dim')
-    viz.plot_result(exp, 'gibson_cost', 'com_noise', 'perception_noise')
+    viz.plot_with_conf(exp, 'gibson_cost', 'perception_noise', 'msg_dim')
+    viz.plot_with_conf(exp, 'gibson_cost', 'com_noise', 'perception_noise')
 
-    viz.plot_result(exp, 'regier_cost', 'com_noise', 'msg_dim')
-    viz.plot_result(exp, 'wellformedness', 'com_noise', 'msg_dim')
-    viz.plot_result(exp, 'term_usage', 'com_noise', 'msg_dim')
-    viz.plot_result(exp, 'term_usage', 'perception_noise', 'msg_dim')
-    viz.plot_result(exp, 'term_usage', 'perception_noise', 'com_noise')
+    viz.plot_with_conf(exp, 'regier_cost', 'com_noise', 'msg_dim')
+    viz.plot_with_conf(exp, 'wellformedness', 'com_noise', 'msg_dim')
+    viz.plot_with_conf(exp, 'term_usage', 'com_noise', 'msg_dim')
+    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'msg_dim')
+    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise')
 
 
 if __name__ == "__main__":

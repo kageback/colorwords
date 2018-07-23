@@ -49,6 +49,32 @@ def plot_result(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z
     plt.savefig(fig_name)
 
 
+def plot_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None):
+    if measure_label is None:
+        measure_label = measure_id.replace('_', ' ')
+    if x_label is None:
+        x_label = x_id.replace('_', ' ')
+    if z_label is None:
+        z_label = z_id.replace('_', ' ')
+
+    mean, ci = exp.estimate_mean(measure_id, as_function_of_axes=[x_id, z_id])
+
+    x = exp.param_ranges[x_id]
+    z = exp.param_ranges[z_id]
+
+    fig, ax = plt.subplots()
+    for z_i, z_value in enumerate(z):
+        ax.plot(x, mean[:, z_i],  '.', label=z_label + '=' + str(z_value))
+        ax.fill_between(x, ci[0][:, z_i], ci[1][:, z_i], alpha=0.2)
+
+    ax.legend()
+    plt.ylabel(measure_label)
+    plt.xlabel(x_label)
+
+    fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + x_id + '_for_' +  z_id +'.png'
+    plt.savefig(fig_name)
+
+
 def print_ranges(exp, env):
     pass
 
