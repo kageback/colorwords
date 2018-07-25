@@ -1,36 +1,32 @@
-import argparse
 import numpy as np
 import gridengine as sge
 import com_game
 import viz
 from gridengine.pipeline import Experiment
-from gridengine.queue import Queue, Local
+
 
 import com_enviroments
 import agents
+import exp_shared
 
 
-def run():
-    queue = Local()
-    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='titan.kageback.se', ge_gpu=1, queue_limit=4)
-    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='home.kageback.se', queue_limit=4)
-    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='ttitania.ce.chalmers.se', user='mlusers', queue_limit=4)
+def run(queue):
 
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
 
-    exp = Experiment(exp_name='color_avg20',
+    exp = Experiment(exp_name='color_small',
                      fixed_params=[('env', 'wcs'),
-                                   ('max_epochs', 10000),  #10000
+                                   ('max_epochs', 1000),  #10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(20)),  # 50
-                                   ('perception_noise', [0, 25, 50, 100]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(3, 12)), #3, 12
-                                   ('com_noise', np.linspace(start=0, stop=0.5, num=10))],
+                     param_ranges=[('avg_over', range(5)),  # 50
+                                   ('perception_noise', [0, 50]),  # [0, 25, 50, 100],
+                                   ('msg_dim', range(3, 8)), #3, 12
+                                   ('com_noise', np.linspace(start=0, stop=0.5, num=10))], #10
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -74,6 +70,7 @@ def run():
 
     return exp.pipeline_name
 
+
 def visualize(pipeline_name):
     print('plot results')
     exp = Experiment.load(pipeline_name)
@@ -94,13 +91,13 @@ def visualize(pipeline_name):
 
     #exp.run(env, call_member='plot_with_colors', V=V, save_to_path=exp.pipeline_path + 'language_map.png')
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Color experiment')
-    parser.add_argument('--pipeline', type=str, default='',
-                        help='Name of existing pipeline to load for re-visualization')
-    args = parser.parse_args()
+    args = exp_shared.parse_script_arguments()
 
+    # Run experiment
     if args.pipeline == '':
-        args.pipeline = run()
+        args.pipeline = run(exp_shared.create_queue(args.host_name))
 
+    # Visualize experiment
     visualize(args.pipeline)
