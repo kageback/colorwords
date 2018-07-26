@@ -17,8 +17,11 @@ def create_queue(host_name):
 
 def parse_script_arguments():
     parser = argparse.ArgumentParser(description='Communication experiments')
+    parser.add_argument('--host_name', type=str, default='local',
+                        help='Select which Grid engine host to use (or run local): (ttitanina | titan | home | [local])')
     parser.add_argument('--pipeline', type=str, default='',
                         help='Name of existing pipeline to load for re-visualization')
-    parser.add_argument('--host_name', type=str, default='local',
-                        help='Where to run: (ttitanina | titan | home | [local])')
+    parser.add_argument('--resync', type=str, default='y',
+                        help='resynchronize loaded pipeline ([y] | n)')
+
     return parser.parse_args()
