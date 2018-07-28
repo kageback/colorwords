@@ -104,12 +104,29 @@ def main():
             exp.wait(retry_interval=5)
             exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
-    cluster_ensemble = exp.get_flattened_results('agent_language_map')
-
-    consensus = evaluate.compute_consensus_map(cluster_ensemble, k=10, iter=10)
-
     e = com_enviroments.make('wcs')
+    cluster_ensemble = exp.get_flattened_results('agent_language_map')
+    consensus = evaluate.compute_consensus_map(cluster_ensemble, k=10, iter=100)
+    maps = [list(consensus.values())]
+
+
+    human_lang_nums = range(1, 31)
+    for lang_num in human_lang_nums:
+        maps += [list(e.human_language_map(lang_num).values())]
+        print(lang_num)
+
     e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
+
+    from sklearn.metrics.cluster import adjusted_rand_score
+    rand_sim = np.zeros([len(maps), len(maps)])
+    for i in range(0, len(maps)):
+        for j in range(i, len(maps)):
+            rand_sim[i, j] = adjusted_rand_score(maps[i], maps[j])
+    print(rand_sim[0, :])
+    r2 = rand_sim + rand_sim.transpose()
+    np.fill_diagonal(r2, 1)
+
+    print(r2.mean(axis=0))
 
     # Visualize experiment
     visualize(exp)
