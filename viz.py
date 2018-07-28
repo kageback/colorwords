@@ -49,7 +49,7 @@ def plot_result(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z
     plt.savefig(fig_name)
 
 
-def plot_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None):
+def plot_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None, fmt='-'):
     if measure_label is None:
         measure_label = measure_id.replace('_', ' ')
     if x_label is None:
@@ -64,7 +64,7 @@ def plot_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None
 
     fig, ax = plt.subplots()
     for z_i, z_value in enumerate(z):
-        ax.plot(x, mean[:, z_i],  '.', label=z_label + '=' + str(z_value))
+        ax.plot(x, mean[:, z_i],  fmt, label=z_label + '= {0:.1f}'.format(z_value))
         ax.fill_between(x, ci[0][:, z_i], ci[1][:, z_i], alpha=0.2)
 
     ax.legend()
