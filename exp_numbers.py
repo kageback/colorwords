@@ -25,7 +25,7 @@ def run(host_name):
                      param_ranges=[('avg_over', range(50)),  # 50
                                    ('perception_noise', [0]),  # [0, 25, 50, 100],
                                    ('msg_dim', range(3, 12)), #3, 12
-                                   ('com_noise', np.linspace(start=0, stop=1, num=5))
+                                   ('com_noise', np.linspace(start=0, stop=1, num=11))
                                    ],
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)

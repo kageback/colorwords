@@ -21,10 +21,10 @@ def run(host_name):
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(5)),  # 50
+                     param_ranges=[('avg_over', range(50)),  # 50
                                    ('perception_noise', [0]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(3, 4)),  # 3, 12
-                                   ('com_noise', np.linspace(start=0, stop=0.5, num=1))],  # 10
+                                   ('msg_dim', range(3, 12)),  # 3, 12
+                                   ('com_noise', np.linspace(start=0, stop=1, num=10))],  # 10
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -49,7 +49,8 @@ def run(host_name):
                                          max_epochs=exp.fixed_params['max_epochs'],
                                          perception_noise=params_v[exp.axes['perception_noise']],
                                          batch_size=exp.fixed_params['batch_size'],
-                                         print_interval=exp.fixed_params['print_interval'])
+                                         print_interval=exp.fixed_params['print_interval'],
+                                         loss_type='REINFORCE')
 
         game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
 

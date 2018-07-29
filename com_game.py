@@ -253,9 +253,9 @@ class NoisyChannelGame(BaseGame):
         self.sum_reward += reward.sum()
 
         # compute loss and update model
-        if loss_type =='REINFORCE':
+        if self.loss_type =='REINFORCE':
             loss = (-m.log_prob(guess) * reward).sum() / self.batch_size
-        elif loss_type == 'CrossEntropyLoss':
+        elif self.loss_type == 'CrossEntropyLoss':
             loss = self.criterion_receiver(guess_logits, target.squeeze())
 
         return loss
