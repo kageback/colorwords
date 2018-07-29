@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torch.autograd import Variable
 
 class BasicAgent(nn.Module):
 
@@ -30,15 +30,27 @@ class BasicAgent(nn.Module):
             probs = F.softmax(self.msg_creator(h)/tau, dim=1)
             return probs
 
-from torch.autograd import Variable
 
-class SoftmaxAgent(BasicAgent):
+class SoftmaxAgent(nn.Module):
     def __init__(self, msg_dim, hidden_dim, color_dim, perception_dim):
-        super().__init__(msg_dim, hidden_dim, color_dim, perception_dim)
+        super().__init__()
+        self.msg_dim = msg_dim
 
+        #Sending part
+        self.perception_embedding = nn.Linear(perception_dim, hidden_dim)
+        self.msg_creator = nn.Linear(hidden_dim, msg_dim)
+
+        # Receiving part
         self.msg_receiver = nn.Linear(msg_dim, hidden_dim)
+        self.color_estimator = nn.Linear(hidden_dim, color_dim)
 
-    def forward(self, perception=None, msg=None, tau=1):
+    def forward(self, perception=None, msg=None, tau=1/3, test_time=False):
+
+        if perception is not None:
+            h = F.relu(self.perception_embedding(perception))
+            logits = self.msg_creator(h)
+
+            return logits
 
         if msg is not None:
             # First make discrete input into a onehot distribution (used for eval)
@@ -47,9 +59,8 @@ class SoftmaxAgent(BasicAgent):
                 onehot.zero_()
                 msg = Variable(onehot.scatter_(1, msg.data.unsqueeze(1), 1))
 
-            h = F.tanh(self.msg_receiver(msg))
+            h = F.relu(self.msg_receiver(msg))
             color_logits = self.color_estimator(h)
-            return F.softmax(color_logits, dim=1)
+            return color_logits
 
-        else:
-            return super().forward(perception, msg, tau)
+

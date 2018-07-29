@@ -3,35 +3,29 @@ import numpy as np
 import gridengine as sge
 import com_game
 import viz
+import evaluate
 from gridengine.pipeline import Experiment
-from gridengine.queue import Queue, Local
-
 import com_enviroments
 import agents
+import exp_shared
 
-def run():
-
-
-    queue = Local()
-    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='titan.kageback.se', ge_gpu=1, queue_limit=4)
-    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='home.kageback.se', queue_limit=4)
-    #queue = Queue(cluster_wd='~/runtime/colorwords/', host='ttitania.ce.chalmers.se', user='mlusers', queue_limit=4)
-
+def run(host_name):
+    # Create and run new experiment
+    queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
-
-    exp = Experiment(exp_name='num_dev',
+    exp = Experiment(exp_name='num_b',
                      fixed_params=[('env', 'numbers'),
-                                   ('max_epochs', 100),  #10000
-                                   ('hidden_dim', 20),
-                                   ('batch_size', 1000),
+                                   ('max_epochs', 10000),  #10000
+                                   ('hidden_dim', 10),
+                                   ('batch_size', 100),
                                    ('perception_dim', 1),
                                    ('target_dim', 100),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(1)),  # 50
+                     param_ranges=[('avg_over', range(50)),  # 50
                                    ('perception_noise', [0]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(10, 12)), #3, 12
-                                   ('com_noise', [0.5,1])#np.linspace(start=0, stop=0.5, num=5))
+                                   ('msg_dim', range(3, 12)), #3, 12
+                                   ('com_noise', np.linspace(start=0, stop=1, num=5))
                                    ],
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -43,12 +37,17 @@ def run():
         exp_i += 1
         #print('Param epoch %d of %d' % (params_i[exp.axes['avg_over']], exp.shape[exp.axes['avg_over']]))
 
-        agent_a = agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
-                                                hidden_dim=exp.fixed_params['hidden_dim'],
-                                                color_dim=exp.fixed_params['target_dim'],
-                                                perception_dim=exp.fixed_params['perception_dim'])
+        agent_a = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
+                                      hidden_dim=exp.fixed_params['hidden_dim'],
+                                      color_dim=exp.fixed_params['target_dim'],
+                                      perception_dim=exp.fixed_params['perception_dim'])
 
-        game = com_game.NoisyChannelGame(reward_func='RMS_reward',
+        agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
+                                      hidden_dim=exp.fixed_params['hidden_dim'],
+                                      color_dim=exp.fixed_params['target_dim'],
+                                      perception_dim=exp.fixed_params['perception_dim'])
+
+        game = com_game.NoisyChannelGame(reward_func='abs_dist',
                                          com_noise=params_v[exp.axes['com_noise']],
                                          msg_dim=params_v[exp.axes['msg_dim']],
                                          max_epochs=exp.fixed_params['max_epochs'],
@@ -60,8 +59,6 @@ def run():
         game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
 
         V = exp.run(game.agent_language_map, env, a=game_outcome).result()
-
-        #V = exp.run(env, call_member='agent_language_map', a=game_outcome)
 
         exp.set_result('agent_language_map', params_i, V)
         exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env, a=game_outcome).result(1))
@@ -77,31 +74,54 @@ def run():
     exp.wait(retry_interval=5)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
-    return exp.pipeline_name
+    return exp
 
-def visualize(pipeline_name):
+def visualize(exp):
     print('plot results')
-    exp = Experiment.load(pipeline_name)
 
     V_mode = com_game.BaseGame.reduce_maps('agent_language_map', exp, reduce_method='mode')
     ranges = com_game.BaseGame.compute_ranges(V_mode)
     print(ranges)
-    # exp.run(env, call_member='print_ranges', V=V.result())
-    viz.plot_result(exp, 'gibson_cost', 'com_noise', 'msg_dim',
-                    measure_label='Gibson communication efficiency',
-                    x_label='Communication noise',
-                    z_label='terms')
-    viz.plot_result(exp, 'regier_cost', 'com_noise', 'msg_dim')
-    viz.plot_result(exp, 'wellformedness', 'com_noise', 'msg_dim')
-    viz.plot_result(exp, 'term_usage', 'com_noise', 'msg_dim')
+
+    # gibson cost
+    viz.plot_with_conf(exp, 'gibson_cost', 'msg_dim', 'perception_noise', measure_label='Gibson communication efficiency', x_label='number of color words', z_label='perception $\sigma^2$')
+    viz.plot_with_conf(exp, 'gibson_cost', 'msg_dim', 'com_noise', measure_label='Gibson communication efficiency', x_label='number of color words', z_label='com $\sigma^2$')
+    # viz.plot_with_conf(exp, 'gibson_cost', 'com_noise', 'perception_noise', measure_label='Gibson communication efficiency')
+
+    # regier cost
+    viz.plot_with_conf(exp, 'regier_cost', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
+    viz.plot_with_conf(exp, 'regier_cost', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
+
+    # wellformedness
+    viz.plot_with_conf(exp, 'wellformedness', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
+    viz.plot_with_conf(exp, 'wellformedness', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
+
+    # term usage
+    viz.plot_with_conf(exp, 'term_usage', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
+    viz.plot_with_conf(exp, 'term_usage', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
+
+
+def main():
+    args = exp_shared.parse_script_arguments()
+    # Run experiment
+    if args.pipeline == '':
+        exp = run(args.host_name)
+    else:
+        # Load existing experiment
+        exp = Experiment.load(args.pipeline)
+        if args.resync == 'y':
+            exp.wait(retry_interval=5)
+            exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
+
+
+    cluster_ensemble = exp.get_flattened_results('agent_language_map')
+    consensus = evaluate.compute_consensus_map(cluster_ensemble, k=10, iter=100)
+    print(consensus.values())
+
+    # Visualize experiment
+    visualize(exp)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Numbers experiment')
-    parser.add_argument('--pipeline', type=str, default='',
-                        help='Name of existing pipeline to load for re-visualization')
-    args = parser.parse_args()
+    main()
 
-    if args.pipeline == '':
-        pipeline_name = run()
-    visualize(pipeline_name)

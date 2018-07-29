@@ -4,8 +4,6 @@ import com_game
 import viz
 import evaluate
 from gridengine.pipeline import Experiment
-
-
 import com_enviroments
 import agents
 import exp_shared
@@ -15,17 +13,17 @@ def run(host_name):
     queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
-    exp = Experiment(exp_name='color_s',
+    exp = Experiment(exp_name='color_d',
                      fixed_params=[('env', 'wcs'),
-                                   ('max_epochs', 1000),  # 10000
+                                   ('max_epochs', 10000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(1)),  # 50
-                                   ('perception_noise', [0, 50]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(3, 5)),  # 3, 12
+                     param_ranges=[('avg_over', range(5)),  # 50
+                                   ('perception_noise', [0]),  # [0, 25, 50, 100],
+                                   ('msg_dim', range(3, 4)),  # 3, 12
                                    ('com_noise', np.linspace(start=0, stop=0.5, num=1))],  # 10
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -36,10 +34,15 @@ def run(host_name):
         print('Scheduled %d experiments out of %d' % (exp_i, len(list(exp))))
         exp_i += 1
 
-        agent_a = agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
-                                                hidden_dim=exp.fixed_params['hidden_dim'],
-                                                color_dim=exp.fixed_params['target_dim'],
-                                                perception_dim=exp.fixed_params['perception_dim'])
+
+        agent_a = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
+                                      hidden_dim=exp.fixed_params['hidden_dim'],
+                                      color_dim=exp.fixed_params['target_dim'],
+                                      perception_dim=exp.fixed_params['perception_dim'])
+        agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
+                                      hidden_dim=exp.fixed_params['hidden_dim'],
+                                      color_dim=exp.fixed_params['target_dim'],
+                                      perception_dim=exp.fixed_params['perception_dim'])
 
         game = com_game.NoisyChannelGame(com_noise=params_v[exp.axes['com_noise']],
                                          msg_dim=params_v[exp.axes['msg_dim']],
@@ -104,18 +107,18 @@ def main():
             exp.wait(retry_interval=5)
             exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
-    e = com_enviroments.make('wcs')
     cluster_ensemble = exp.get_flattened_results('agent_language_map')
     consensus = evaluate.compute_consensus_map(cluster_ensemble, k=10, iter=100)
     maps = [list(consensus.values())]
 
+    e = com_enviroments.make('wcs')
+
+    e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
 
     human_lang_nums = range(1, 31)
     for lang_num in human_lang_nums:
         maps += [list(e.human_language_map(lang_num).values())]
         print(lang_num)
-
-    e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
 
     from sklearn.metrics.cluster import adjusted_rand_score
     rand_sim = np.zeros([len(maps), len(maps)])
@@ -130,9 +133,6 @@ def main():
 
     # Visualize experiment
     visualize(exp)
-
-
-
 
 
 if __name__ == "__main__":

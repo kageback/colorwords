@@ -44,7 +44,7 @@ class BaseGame:
             optimizer.step()
 
             # printing status
-            if self.print_interval != 0 and (i % self.print_interval == 0):
+            if self.print_interval != 0 and ((i+1) % self.print_interval == 0):
                 self.print_status(loss)
 
         return agent_a.cpu()
@@ -207,7 +207,8 @@ class NoisyChannelGame(BaseGame):
                  perception_noise=0,
                  batch_size=100,
                  print_interval=1000,
-                 perception_dim=3):
+                 perception_dim=3,
+                 loss_type='CrossEntropyLoss'):
         super().__init__(max_epochs, batch_size, print_interval)
         self.reward_func = reward_func
         self.com_noise = com_noise
@@ -215,23 +216,29 @@ class NoisyChannelGame(BaseGame):
         self.perception_noise = perception_noise
         self.perception_dim = perception_dim
 
+        self.loss_type = loss_type
+
         self.sum_reward = 0
+
+        self.criterion_receiver = torch.nn.CrossEntropyLoss()
 
     def communication_channel(self, env, agent_a, agent_b, target, perception):
         # add perceptual noise
-        if self.training_mode:
-            noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
-                                        torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
-            perception = perception + noise
+
+        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
+                                    torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
+        perception = perception + noise
         # generate message
-        msg_probs = agent_a(perception=perception)
+        msg_logits = agent_a(perception=perception)
         # add communication noise
-        if self.training_mode:
-            noise = th.float_var(Normal(torch.zeros(self.batch_size, self.msg_dim),
-                                        torch.ones(self.batch_size, self.msg_dim) * self.com_noise).sample())
-            msg = msg_probs + noise
+        # msg_probs = F.gumbel_softmax(msg_logits, tau=2 / 3)
+        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.msg_dim),
+                                    torch.ones(self.batch_size, self.msg_dim) * self.com_noise).sample())
+        msg_probs = F.softmax(msg_logits + noise, dim=1)
+
         # interpret message and sample a guess
-        guess_probs = agent_b(msg=msg)
+        guess_logits = agent_b(msg=msg_probs)
+        guess_probs = F.softmax(guess_logits, dim=1)
         m = Categorical(guess_probs)
         guess = m.sample()
 
@@ -239,21 +246,24 @@ class NoisyChannelGame(BaseGame):
         if self.reward_func == 'regier_reward':
             CIELAB_guess = th.float_var(env.chip_index2CIELAB(guess.data))
             reward = env.sim(perception, CIELAB_guess)
-        elif self.reward_func == 'RMS_reward':
-            diff = perception - guess.unsqueeze(dim=1).float()
-            reward = 100-torch.sqrt(torch.pow(diff, 2))
-
-        #reward = env.regier_reward(perception, guess_probs)
+        elif self.reward_func == 'abs_dist':
+            diff = torch.abs(target - guess.unsqueeze(dim=1))
+            reward = 1-(diff.float()/100) #1-(diff.float()/50)
 
         self.sum_reward += reward.sum()
+
         # compute loss and update model
-        loss = (-m.log_prob(guess) * reward).sum() / self.batch_size
+        if loss_type =='REINFORCE':
+            loss = (-m.log_prob(guess) * reward).sum() / self.batch_size
+        elif loss_type == 'CrossEntropyLoss':
+            loss = self.criterion_receiver(guess_logits, target.squeeze())
+
         return loss
 
     def print_status(self, loss):
 
-        print("Loss %f Naive perplexity %f Average reward %f" %
-              (loss, torch.exp(loss), self.sum_reward / (self.print_interval * self.batch_size))
+        print("Loss %f Average reward %f" %
+              (loss, self.sum_reward / (self.print_interval * self.batch_size))
               )
         self.sum_reward = 0
 
