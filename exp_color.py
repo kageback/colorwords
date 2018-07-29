@@ -15,16 +15,16 @@ def run(host_name):
                recursive=True)
     exp = Experiment(exp_name='color_d',
                      fixed_params=[('env', 'wcs'),
-                                   ('max_epochs', 10000),  # 10000
+                                   ('max_epochs', 1000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(50)),  # 50
+                     param_ranges=[('avg_over', range(1)),  # 50
                                    ('perception_noise', [0]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(3, 12)),  # 3, 12
-                                   ('com_noise', np.linspace(start=0, stop=1, num=10))],  # 10
+                                   ('msg_dim', range(3, 4)),  # 3, 12
+                                   ('com_noise', np.linspace(start=0, stop=1, num=1))],  # 10
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 

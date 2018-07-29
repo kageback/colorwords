@@ -1,10 +1,9 @@
 import os
 import numpy as np
-import com_enviroments.getngrams as ngram
-import requests
+#import requests
 import re
 from ast import literal_eval
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from com_enviroments.BaseEnviroment import BaseEnviroment
 
 class NumberEnvironment(BaseEnviroment):
@@ -14,8 +13,8 @@ class NumberEnvironment(BaseEnviroment):
         self.samp = 'freq'
         self.numbers = np.array(list(range(self.data_dim)))
         self.num_use_dist = self.get_use_dist()
-        plt.plot(range(100), self.num_use_dist)
-        plt.savefig('fig/wrd_dist.png')
+        #plt.plot(range(100), self.num_use_dist)
+        #plt.savefig('fig/wrd_dist.png')
     def full_batch(self):
         return self.numbers, np.expand_dims(self.numbers, axis=1)
 
@@ -41,6 +40,7 @@ class NumberEnvironment(BaseEnviroment):
                 query = ','.join([str(n) for n in numbers])
                 params = dict(content=query, year_start=1999, year_end=2000,
                               corpus=15, smoothing=3)
+                import requests
                 req = requests.get('http://books.google.com/ngrams/graph', params=params)
                 res = re.findall('var data = (.*?);\\n', req.text)
                 data += [qry['timeseries'][1] for qry in literal_eval(res[0])]
