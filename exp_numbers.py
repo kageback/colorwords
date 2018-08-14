@@ -23,7 +23,7 @@ def run(host_name):
                                    ('target_dim', 100),
                                    ('print_interval', 1000)],
                      param_ranges=[('avg_over', range(20)),  # 50
-                                   ('perception_noise', [0, 25]),  # [0, 25, 50, 100],
+                                   ('perception_noise', [0]),  # [0, 25, 50, 100],
                                    ('msg_dim', range(1, 10)), #3, 12
                                    ('com_noise', np.linspace(start=0, stop=1, num=11))
                                    ],
