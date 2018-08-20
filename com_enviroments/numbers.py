@@ -26,7 +26,7 @@ class NumberEnvironment(BaseEnviroment):
             batch = np.expand_dims(np.random.randint(0, self.data_dim, batch_size), axis=1)
         return batch, batch
 
-    def sim_np(self, num_a, num_b):
+    def sim_index(self, num_a, num_b):
         return self.data_dim - np.sqrt(np.power(num_a-num_b, 2))
 
     def get_use_dist(self):

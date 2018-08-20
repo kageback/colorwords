@@ -73,33 +73,17 @@ class WCS_Enviroment(BaseEnviroment):
         reward = (color_codes == I).float() - (color_codes != I).float()
         return reward
 
-    def regier_reward(self, color, color_guess):
-        _, color_code_guess = color_guess.max(1)
-        color_guess = th.float_var(self.chip_index2CIELAB(color_code_guess.data))
-        return self.sim(color, color_guess)
-
-    # basic color chip similarity
-
-    def dist(self, color_x, color_y):
+    def regier_reward(self, cielab_color_x, cielab_color_y, c=0.001):
         # CIELAB distance 76 (euclidean distance)
-        diff = (color_x - color_y)
-        return diff.norm(2, 1)
-
-    def sim(self, color_x, color_y, c=0.001):
+        dist = (cielab_color_x - cielab_color_y).norm(2, 1)
         # Regier similarity
-        return torch.exp(-c * torch.pow(self.dist(color_x, color_y), 2))
+        return torch.exp(-c * torch.pow(dist, 2))
 
-
-    def sim_np(wcs, chip_index_x, chip_index_y, c=0.001):
+    def sim_index(self, chip_index_x, chip_index_y, c=0.001):
         # sim func used for computing the evaluation metrics
-        color_x = wcs.cielab_map[chip_index_x]
-        color_y = wcs.cielab_map[chip_index_y]
-
-        # CIELAB distance 76 (euclidean distance)
-        d = np.linalg.norm(color_x - color_y, 2)
-
-        # Regier color similarity
-        return np.exp(-c * np.power(d, 2))
+        color_x = th.float_var(self.cielab_map[chip_index_x]).unsqueeze(0)
+        color_y = th.float_var(self.cielab_map[chip_index_y]).unsqueeze(0)
+        return self.regier_reward(color_x, color_y)
 
     # plotting
     def plot_with_colors(self, V, save_to_path='dev.png', y_wcs_range='ABCDEFGHIJ', x_wcs_range=range(0, 41), use_real_color=True):

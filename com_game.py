@@ -75,7 +75,7 @@ class BaseGame:
             s[i] = 0
             for j in V.keys():
                 if V[i] == V[j]:
-                    s[i] += env.sim_np(i, j)
+                    s[i] += env.sim_index(i, j)
 
         l = {}
         for t in V.keys():
@@ -114,12 +114,12 @@ class BaseGame:
         for i in V.keys():
             for j in V.keys():
                 if V[i] == V[j]:
-                    Sw += env.sim_np(i, j)
+                    Sw += env.sim_index(i, j)
         Da = 0
         for i in V.keys():
             for j in V.keys():
                 if V[i] != V[j]:
-                    Da += 1 - env.sim_np(i, j)
+                    Da += 1 - env.sim_index(i, j)
         W = Sw + Da
         return W
 
@@ -245,7 +245,7 @@ class NoisyChannelGame(BaseGame):
         #compute reward
         if self.reward_func == 'regier_reward':
             CIELAB_guess = th.float_var(env.chip_index2CIELAB(guess.data))
-            reward = env.sim(perception, CIELAB_guess)
+            reward = env.regier_reward(perception, CIELAB_guess)
         elif self.reward_func == 'abs_dist':
             diff = torch.abs(target - guess.unsqueeze(dim=1))
             reward = 1-(diff.float()/100) #1-(diff.float()/50)

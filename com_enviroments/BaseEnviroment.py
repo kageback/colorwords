@@ -12,7 +12,7 @@ class BaseEnviroment:
     def mini_batch(self, batch_size=10):
         pass
 
-    def sim_np(self):
+    def sim_index(self):
         pass
 
 
