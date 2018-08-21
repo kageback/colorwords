@@ -18,7 +18,7 @@ def compute_consensus_map(cluster_ensemble, iter, k):
                     corr_graph[j, i] = corr_graph[i, j] - 1
 
     consensus = Correlation_Clustering.max_correlation(corr_graph, k, iter)
-    consensus = {k: consensus[k] for k in range(len(consensus))}
+    #consensus = {k: consensus[k] for k in range(len(consensus))}
     return consensus
 
 

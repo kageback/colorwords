@@ -17,16 +17,16 @@ def run(host_name):
                      fixed_params=[('loss_type', 'REINFORCE'),
                                    ('bw_boost', 2),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 10000),  # 10000
+                                   ('max_epochs', 100),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
-                                   ('print_interval', 1000)],
+                                   ('print_interval', 1000),
+                                   ('msg_dim', 15)],
                      param_ranges=[('avg_over', range(1)),  # 50
-                                   ('perception_noise', [40]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
-                                   ('msg_dim', [15]),  # 3, 12
-                                   ('com_noise', np.linspace(start=0, stop=1, num=1))],  # 10
+                                   ('perception_noise', [40, 80]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
+                                   ('com_noise', [0.5])],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -36,18 +36,17 @@ def run(host_name):
         print('Scheduled %d experiments out of %d' % (exp_i, len(list(exp))))
         exp_i += 1
 
-
-        agent_a = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
+        agent_a = agents.SoftmaxAgent(msg_dim=exp.fixed_params['msg_dim'],
                                       hidden_dim=exp.fixed_params['hidden_dim'],
                                       color_dim=exp.fixed_params['target_dim'],
                                       perception_dim=exp.fixed_params['perception_dim'])
-        agent_b = agents.SoftmaxAgent(msg_dim=params_v[exp.axes['msg_dim']],
+        agent_b = agents.SoftmaxAgent(msg_dim=exp.fixed_params['msg_dim'],
                                       hidden_dim=exp.fixed_params['hidden_dim'],
                                       color_dim=exp.fixed_params['target_dim'],
                                       perception_dim=exp.fixed_params['perception_dim'])
 
         game = com_game.NoisyChannelGame(com_noise=params_v[exp.axes['com_noise']],
-                                         msg_dim=params_v[exp.axes['msg_dim']],
+                                         msg_dim=exp.fixed_params['msg_dim'],
                                          max_epochs=exp.fixed_params['max_epochs'],
                                          perception_noise=params_v[exp.axes['perception_noise']],
                                          batch_size=exp.fixed_params['batch_size'],
@@ -77,26 +76,20 @@ def run(host_name):
 def visualize(exp):
     print('plot results')
 
-    # gibson cost
-    viz.plot_with_conf(exp, 'gibson_cost', 'msg_dim', 'perception_noise', measure_label='Gibson communication efficiency', x_label='number of color words', z_label='perception $\sigma^2$')
-    viz.plot_with_conf(exp, 'gibson_cost', 'msg_dim', 'com_noise',  measure_label='Gibson communication efficiency', x_label='number of color words', z_label='com $\sigma^2$')
-    #viz.plot_with_conf(exp, 'gibson_cost', 'com_noise', 'perception_noise', measure_label='Gibson communication efficiency')
-
-    # regier cost
-    viz.plot_with_conf(exp, 'regier_cost', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
-    viz.plot_with_conf(exp, 'regier_cost', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
-
-    # wellformedness
-    viz.plot_with_conf(exp, 'wellformedness', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
-    viz.plot_with_conf(exp, 'wellformedness', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
-
     # term usage
-    viz.plot_with_conf(exp, 'term_usage', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$' )
-    viz.plot_with_conf(exp, 'term_usage', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
+    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise',
+                       x_label='perception $\sigma^2$',
+                       z_label='com $\sigma^2$', )
+    viz.hist(exp, 'term_usage', 'perception_noise')
+    #plot_maps(exp)
 
-    #viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise')
 
-    #exp.run(env, call_member='plot_with_colors', V=V, save_to_path=exp.pipeline_path + 'language_map.png')
+def plot_maps(exp):
+    e = com_enviroments.make('wcs')
+    cluster_ensemble = exp.get_flattened_results('agent_language_map')
+    for i, c in enumerate(cluster_ensemble):
+        e.plot_with_colors(c, save_to_path=exp.pipeline_path + 'language_map_' + str(i) + '.png')
+    print('term usage: ' + str(exp.get_flattened_results('term_usage')))
 
 
 def main():
@@ -111,17 +104,14 @@ def main():
             exp.wait(retry_interval=5)
             exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
+    consensus = evaluate.compute_consensus_map(exp.get_flattened_results('agent_language_map'), k=5, iter=10)
     e = com_enviroments.make('wcs')
-    cluster_ensemble = exp.get_flattened_results('agent_language_map')
-    for i, c in enumerate(cluster_ensemble):
-        e.plot_with_colors(c, save_to_path=exp.pipeline_path + 'language_map_' + str(i) + '.png')
-    print('term usage: ' + str(exp.get_flattened_results('term_usage')))
-
-    #consensus = evaluate.compute_consensus_map(cluster_ensemble, k=10, iter=100)
-    #e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
+    e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
 
     # Visualize experiment
-    #visualize(exp)
+    visualize(exp)
+
+
 
 
 if __name__ == "__main__":

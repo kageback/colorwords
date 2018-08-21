@@ -67,21 +67,21 @@ class BaseGame:
             #V[perception_index] = terms[perception_index].cpu().data[0]
             V[perception_index] = terms[perception_index].item()
 
-        return V
+        return list(V.values())
 
     def communication_cost_regier(self, env, V, sum_over_whole_s=False, norm_over_s=False, weight_by_size=False):
         s = {}
-        for i in V.keys():
+        for i in range(len(V)):
             s[i] = 0
-            for j in V.keys():
+            for j in range(len(V)):
                 if V[i] == V[j]:
                     s[i] += env.sim_index(i, j)
 
         l = {}
-        for t in V.keys():
+        for t in range(len(V)):
             z = 0
             cat_size = 0
-            for i in V.keys():
+            for i in range(len(V)):
 
                 if sum_over_whole_s or V[i] == V[t]:
                     z += s[i]
@@ -103,7 +103,7 @@ class BaseGame:
             l_z += x
 
         E = 0
-        for t in V.keys():
+        for t in range(len(V)):
             E += -np.log2(l[t])
         E = E / len(V)
 
@@ -111,13 +111,13 @@ class BaseGame:
 
     def wellformedness(self, env, V):
         Sw = 0
-        for i in V.keys():
-            for j in V.keys():
+        for i in range(len(V)):
+            for j in range(len(V)):
                 if V[i] == V[j]:
                     Sw += env.sim_index(i, j)
         Da = 0
-        for i in V.keys():
-            for j in V.keys():
+        for i in range(len(V)):
+            for j in range(len(V)):
                 if V[i] != V[j]:
                     Da += 1 - env.sim_index(i, j)
         W = Sw + Da
@@ -131,7 +131,7 @@ class BaseGame:
                 dict[key] = increment
 
         cat_sizes = {}
-        for v in V.values():
+        for v in V:
             inc_dict(cat_sizes, v, 1)
         n = len(cat_sizes)
         return n, cat_sizes
@@ -169,7 +169,7 @@ class BaseGame:
     @staticmethod
     def compute_ranges(V):
         lex = {}
-        for n in V.keys():
+        for n in range(len(V)):
             if not V[n] in lex.keys():
                 lex[V[n]] = [n]
             else:
