@@ -14,7 +14,9 @@ def run(host_name):
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
     exp = Experiment(exp_name='color_d',
-                     fixed_params=[('env', 'wcs'),
+                     fixed_params=[('loss_type', 'REINFORCE'),
+                                   ('bw_boost', 1),
+                                   ('env', 'wcs'),
                                    ('max_epochs', 10000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
@@ -22,8 +24,8 @@ def run(host_name):
                                    ('target_dim', 330),
                                    ('print_interval', 1000)],
                      param_ranges=[('avg_over', range(1)),  # 50
-                                   ('perception_noise', [0, 10, 20, 40, 80, 160, 320]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(11, 12)),  # 3, 12
+                                   ('perception_noise', [40]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
+                                   ('msg_dim', [15]),  # 3, 12
                                    ('com_noise', np.linspace(start=0, stop=1, num=1))],  # 10
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -50,7 +52,8 @@ def run(host_name):
                                          perception_noise=params_v[exp.axes['perception_noise']],
                                          batch_size=exp.fixed_params['batch_size'],
                                          print_interval=exp.fixed_params['print_interval'],
-                                         loss_type='REINFORCE')
+                                         loss_type=exp.fixed_params['loss_type'],
+                                         bw_boost=exp.fixed_params['bw_boost'])
 
         game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
 
@@ -112,6 +115,7 @@ def main():
     cluster_ensemble = exp.get_flattened_results('agent_language_map')
     for i, c in enumerate(cluster_ensemble):
         e.plot_with_colors(c, save_to_path=exp.pipeline_path + 'language_map_' + str(i) + '.png')
+    print('term usage: ' + str(exp.get_flattened_results('term_usage')))
 
     #consensus = evaluate.compute_consensus_map(cluster_ensemble, k=10, iter=100)
     #e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')

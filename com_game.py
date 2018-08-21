@@ -201,6 +201,7 @@ class NoisyChannelGame(BaseGame):
 
     def __init__(self,
                  reward_func='regier_reward',
+                 bw_boost=0,
                  com_noise=0,
                  msg_dim=11,
                  max_epochs=1000,
@@ -211,6 +212,7 @@ class NoisyChannelGame(BaseGame):
                  loss_type='CrossEntropyLoss'):
         super().__init__(max_epochs, batch_size, print_interval)
         self.reward_func = reward_func
+        self.bw_boost = bw_boost
         self.com_noise = com_noise
         self.msg_dim = msg_dim
         self.perception_noise = perception_noise
@@ -245,7 +247,7 @@ class NoisyChannelGame(BaseGame):
         #compute reward
         if self.reward_func == 'regier_reward':
             CIELAB_guess = th.float_var(env.chip_index2CIELAB(guess.data))
-            reward = env.regier_reward(perception, CIELAB_guess)
+            reward = env.regier_reward(perception, CIELAB_guess, bw_boost=self.bw_boost)
         elif self.reward_func == 'abs_dist':
             diff = torch.abs(target - guess.unsqueeze(dim=1))
             reward = 1-(diff.float()/100) #1-(diff.float()/50)

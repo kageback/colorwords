@@ -73,9 +73,14 @@ class WCS_Enviroment(BaseEnviroment):
         reward = (color_codes == I).float() - (color_codes != I).float()
         return reward
 
-    def regier_reward(self, cielab_color_x, cielab_color_y, c=0.001):
+    def regier_reward(self, cielab_color_x, cielab_color_y, c=0.001, bw_boost=0):
         # CIELAB distance 76 (euclidean distance)
-        dist = (cielab_color_x - cielab_color_y).norm(2, 1)
+        diff = (cielab_color_x - cielab_color_y)
+        if bw_boost != 1:
+            bw_booster = torch.FloatTensor([bw_boost, 1, 1])
+            bw_booster /= bw_booster.norm()
+            diff = diff*bw_booster
+        dist = diff.norm(2, 1)
         # Regier similarity
         return torch.exp(-c * torch.pow(dist, 2))
 
