@@ -15,15 +15,15 @@ def run(host_name):
                recursive=True)
     exp = Experiment(exp_name='color_d',
                      fixed_params=[('env', 'wcs'),
-                                   ('max_epochs', 1000),  # 10000
+                                   ('max_epochs', 10000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000)],
                      param_ranges=[('avg_over', range(1)),  # 50
-                                   ('perception_noise', [0]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(3, 4)),  # 3, 12
+                                   ('perception_noise', [0, 10, 20, 40, 80, 160, 320]),  # [0, 25, 50, 100],
+                                   ('msg_dim', range(11, 12)),  # 3, 12
                                    ('com_noise', np.linspace(start=0, stop=1, num=1))],  # 10
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -108,32 +108,16 @@ def main():
             exp.wait(retry_interval=5)
             exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
-    cluster_ensemble = exp.get_flattened_results('agent_language_map')
-    consensus = evaluate.compute_consensus_map(cluster_ensemble, k=10, iter=100)
-    maps = [list(consensus.values())]
-
     e = com_enviroments.make('wcs')
+    cluster_ensemble = exp.get_flattened_results('agent_language_map')
+    for i, c in enumerate(cluster_ensemble):
+        e.plot_with_colors(c, save_to_path=exp.pipeline_path + 'language_map_' + str(i) + '.png')
 
-    e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
-
-    human_lang_nums = range(1, 31)
-    for lang_num in human_lang_nums:
-        maps += [list(e.human_language_map(lang_num).values())]
-        print(lang_num)
-
-    from sklearn.metrics.cluster import adjusted_rand_score
-    rand_sim = np.zeros([len(maps), len(maps)])
-    for i in range(0, len(maps)):
-        for j in range(i, len(maps)):
-            rand_sim[i, j] = adjusted_rand_score(maps[i], maps[j])
-    print(rand_sim[0, :])
-    r2 = rand_sim + rand_sim.transpose()
-    np.fill_diagonal(r2, 1)
-
-    print(r2.mean(axis=0))
+    #consensus = evaluate.compute_consensus_map(cluster_ensemble, k=10, iter=100)
+    #e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
 
     # Visualize experiment
-    visualize(exp)
+    #visualize(exp)
 
 
 if __name__ == "__main__":
