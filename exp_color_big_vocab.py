@@ -13,19 +13,19 @@ def run(host_name):
     queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
-    exp = Experiment(exp_name='color_d',
+    exp = Experiment(exp_name='color_fix',
                      fixed_params=[('loss_type', 'REINFORCE'),
                                    ('bw_boost', 2),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 100),  # 10000
+                                   ('max_epochs', 20000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
                                    ('msg_dim', 15)],
-                     param_ranges=[('avg_over', range(1)),  # 50
-                                   ('perception_noise', [40, 80]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
+                     param_ranges=[('avg_over', range(20)),  # 50
+                                   ('perception_noise', [0, 10, 20, 40, 80, 160, 320]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
                                    ('com_noise', [0.5])],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -81,7 +81,12 @@ def visualize(exp):
                        x_label='perception $\sigma^2$',
                        z_label='com $\sigma^2$', )
     viz.hist(exp, 'term_usage', 'perception_noise')
-    #plot_maps(exp)
+
+    plot_maps(exp)
+
+    plot_consensus_map(exp)
+
+    plot_consensus_over_used_terms(exp)
 
 
 def plot_maps(exp):
@@ -90,6 +95,26 @@ def plot_maps(exp):
     for i, c in enumerate(cluster_ensemble):
         e.plot_with_colors(c, save_to_path=exp.pipeline_path + 'language_map_' + str(i) + '.png')
     print('term usage: ' + str(exp.get_flattened_results('term_usage')))
+
+
+def plot_consensus_map(exp):
+    consensus = evaluate.compute_consensus_map(exp.get_flattened_results('agent_language_map'), k=5, iter=100)
+    e = com_enviroments.make('wcs')
+    e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
+
+
+def plot_consensus_over_used_terms(exp):
+    maps = exp.get_flattened_results('agent_language_map')
+    terms_used = exp.get_flattened_results('term_usage')
+    term_maps = {}
+    for t, m in zip(terms_used, maps):
+        if t not in term_maps.keys():
+            term_maps[t] = []
+        term_maps[t] += [m]
+    e = com_enviroments.make('wcs')
+    for t in term_maps.keys():
+        consensus = evaluate.compute_consensus_map(term_maps[t], k=t, iter=100)
+        e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map-' + str(t) + '.png')
 
 
 def main():
@@ -104,14 +129,8 @@ def main():
             exp.wait(retry_interval=5)
             exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
-    consensus = evaluate.compute_consensus_map(exp.get_flattened_results('agent_language_map'), k=5, iter=10)
-    e = com_enviroments.make('wcs')
-    e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
-
     # Visualize experiment
     visualize(exp)
-
-
 
 
 if __name__ == "__main__":

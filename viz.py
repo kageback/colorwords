@@ -49,11 +49,13 @@ def plot_result(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z
     plt.savefig(fig_name)
 
 def hist(exp, measure_id, x_id):
-    d = exp.reshape(measure_id, [x_id])
-    plt.figure()
-    plt.hist(d)
-    fig_name = exp.pipeline_path + '/fig_hist_' + measure_id + '_vs_' + x_id + '.png'
-    plt.savefig(fig_name)
+    dists = exp.reshape(measure_id, [x_id])
+    x_vals = exp.param_ranges[x_id]
+    for i in range(len(x_vals)):
+        plt.figure()
+        plt.hist(dists[i])
+        fig_name = exp.pipeline_path + '/fig_hist_' + measure_id + '_vs_' + x_id + '-' + str(x_vals[i]) + '.png'
+        plt.savefig(fig_name)
 
 
 def plot_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None, fmt='-'):

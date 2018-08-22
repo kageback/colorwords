@@ -21,7 +21,7 @@ def parse_script_arguments():
                         help='Select which Grid engine host to use (or run local): (ttitanina | titan | home | [local])')
     parser.add_argument('--pipeline', type=str, default='',
                         help='Name of existing pipeline to load for re-visualization')
-    parser.add_argument('--resync', type=str, default='y',
-                        help='resynchronize loaded pipeline ([y] | n)')
+    parser.add_argument('--resync', type=str, default='n',
+                        help='resynchronize loaded pipeline (y | [n])')
 
     return parser.parse_args()
