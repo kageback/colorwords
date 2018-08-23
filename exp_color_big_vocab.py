@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import gridengine as sge
 import com_game
 import viz
@@ -86,7 +87,7 @@ def visualize(exp):
 
     plot_consensus_map(exp)
 
-    plot_consensus_over_used_terms(exp)
+
 
 
 def plot_maps(exp):
@@ -104,16 +105,12 @@ def plot_consensus_map(exp):
 
 
 def plot_consensus_over_used_terms(exp):
-    maps = exp.get_flattened_results('agent_language_map')
-    terms_used = exp.get_flattened_results('term_usage')
-    term_maps = {}
-    for t, m in zip(terms_used, maps):
-        if t not in term_maps.keys():
-            term_maps[t] = []
-        term_maps[t] += [m]
+    maps = exp.reshape('agent_language_map')
+    terms_used = exp.reshape('term_usage')
     e = com_enviroments.make('wcs')
-    for t in term_maps.keys():
-        consensus = evaluate.compute_consensus_map(term_maps[t], k=t, iter=100)
+
+    for t in np.unique(terms_used):
+        consensus = evaluate.compute_consensus_map(maps[terms_used == t], k=t, iter=10)
         e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map-' + str(t) + '.png')
 
 
@@ -129,8 +126,15 @@ def main():
             exp.wait(retry_interval=5)
             exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
+    evaluate.does_noise_matter_for_partitioning_style(exp)
+
+    plot_consensus_over_used_terms(exp)
+
     # Visualize experiment
-    visualize(exp)
+    #visualize(exp)
+
+
+
 
 
 if __name__ == "__main__":
