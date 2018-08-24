@@ -48,6 +48,8 @@ class WCS_Enviroment(BaseEnviroment):
 
         print('Computing human mode maps. This should only happen the first run but will take a minute to two.')
         human_mode_maps = {}
+        if not os.path.exists(wcs_path + 'mode_maps'):
+            os.mkdir(wcs_path + 'mode_maps')
         for lang_num in range(1, 111):
             l = self.term_nums.loc[self.term_nums.lang_num == lang_num]
             if np.unique(l.chip_num.values).shape[0] == 330:
@@ -55,6 +57,7 @@ class WCS_Enviroment(BaseEnviroment):
                 m = [l.loc[l.chip_num == self.color_chips.loc[chip_i]['#cnum']]['term_num'].mode().values[0] for
                      chip_i in range(330)]
                 human_mode_maps[lang_num] = np.array(m)
+                self.plot_with_colors(np.array(m), wcs_path + 'mode_maps/human_lang_' + str(lang_num) + '.png')
             else:
                 print(
                     'Skipping lang {} due to incomplete data (experiment only consisting of {}/330 chips).'.format(
@@ -138,7 +141,7 @@ class WCS_Enviroment(BaseEnviroment):
         for y in range(N_y):
             for x in range(N_x):
                 if word[y, x] >= 0:
-                    word_color = my_cmap.colors[word[y, x]]
+                    word_color = my_cmap.colors[word[y, x] % 20]
                     word_border = '-'
                     if word[y, x] != word[y, (x+1) % N_x]:
                         ax.add_line(lines.Line2D([x + 1, x + 1], [N_y - y, N_y - (y + 1)], color='w'))

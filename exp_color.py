@@ -76,63 +76,10 @@ def run(host_name):
 
 
 def visualize(exp):
-    print('plot results')
-
-    # term usage
-    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise',
-                       x_label='perception $\sigma^2$',
-                       z_label='com $\sigma^2$', )
-    viz.hist(exp, 'term_usage', 'perception_noise')
-
-    plot_maps(exp)
-
-    plot_consensus_map(exp)
-
-
-    evaluate.does_noise_matter_for_partitioning_style(exp)
-
-    plot_consensus_over_used_terms(exp)
-
-
-
-def plot_maps(exp):
-    e = com_enviroments.make('wcs')
-    cluster_ensemble = exp.get_flattened_results('agent_language_map')
-    for i, c in enumerate(cluster_ensemble):
-        e.plot_with_colors(c, save_to_path=exp.pipeline_path + 'language_map_' + str(i) + '.png')
-    print('term usage: ' + str(exp.get_flattened_results('term_usage')))
-
-
-def plot_consensus_map(exp):
-    consensus = evaluate.compute_consensus_map(exp.get_flattened_results('agent_language_map'), k=5, iter=100)
-    e = com_enviroments.make('wcs')
-    e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map.png')
-
-
-def plot_consensus_over_used_terms(exp):
-    maps = exp.reshape('agent_language_map')
-    terms_used = exp.reshape('term_usage')
-    e = com_enviroments.make('wcs')
-
-    for t in np.unique(terms_used):
-        consensus = evaluate.compute_consensus_map(maps[terms_used == t], k=t, iter=10)
-        e.plot_with_colors(consensus, save_to_path=exp.pipeline_path + 'consensus_language_map-' + str(t) + '.png')
-
-
-def main():
-    args = exp_shared.parse_script_arguments()
-    # Run experiment
-    if args.pipeline == '':
-        exp = run(args.host_name)
-    else:
-        # Load existing experiment
-        exp = Experiment.load(args.pipeline)
-        if args.resync == 'y':
-            exp.wait(retry_interval=5)
-            exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
+    print('Analyse results')
 
     term_usage_to_analyse = list(range(3, 12))
-    iter = 100
+    iter = 10
 
     agent_maps = exp.reshape('agent_language_map')
     agent_term_usage = exp.reshape('term_usage')
@@ -171,7 +118,6 @@ def main():
             cross_agent_consensus_to_humans_vs_term_usage += [np.nan]
 
 
-            ## printing result
     # print perception noise influence table
     print('\n'.join(
         ['Terms used & Mean rand index for all & Mean rand index within noise group \\\\ \\thickhline'] +
@@ -193,6 +139,25 @@ def main():
             cross_agent_consensus_to_humans_vs_term_usage[i])
             for i in range(len(term_usage_to_analyse))
         ]))
+
+    # term usage across different level of noise
+    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise',
+                       x_label='perception $\sigma^2$',
+                       z_label='com $\sigma^2$', )
+    viz.hist(exp, 'term_usage', 'perception_noise')
+
+
+def main():
+    args = exp_shared.parse_script_arguments()
+    # Run experiment
+    if args.pipeline == '':
+        exp = run(args.host_name)
+    else:
+        # Load existing experiment
+        exp = Experiment.load(args.pipeline)
+        if args.resync == 'y':
+            exp.wait(retry_interval=5)
+            exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
     # Visualize experiment
     #visualize(exp)
