@@ -131,7 +131,6 @@ def main():
             exp.wait(retry_interval=5)
             exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
-
     term_usage_to_analyse = list(range(3, 12))
     iter = 100
 
