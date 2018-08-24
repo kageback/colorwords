@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+import pickle
 
 import matplotlib
 matplotlib.use('Agg')
@@ -38,6 +38,33 @@ class WCS_Enviroment(BaseEnviroment):
                                   how='inner',
                                   on=['lang_num', 'term_abrev'])
 
+        self.human_mode_maps = self.compute_human_mode_maps(wcs_path)
+
+    def compute_human_mode_maps(self, wcs_path):
+        # Human mode maps
+        fname = wcs_path + 'mode_maps.plk'
+        if os.path.exists(fname):
+            return pickle.load(open(fname, "rb"))
+
+        print('Computing human mode maps. This should only happen the first run but will take a minute to two.')
+        human_mode_maps = {}
+        for lang_num in range(1, 111):
+            l = self.term_nums.loc[self.term_nums.lang_num == lang_num]
+            if np.unique(l.chip_num.values).shape[0] == 330:
+                print('processing lang {}'.format(lang_num))
+                m = [l.loc[l.chip_num == self.color_chips.loc[chip_i]['#cnum']]['term_num'].mode().values[0] for
+                     chip_i in range(330)]
+                human_mode_maps[lang_num] = np.array(m)
+            else:
+                print(
+                    'Skipping lang {} due to incomplete data (experiment only consisting of {}/330 chips).'.format(
+                        lang_num,
+                        np.unique(l.chip_num.values).shape[0]))
+        pickle.dump(human_mode_maps, open(fname, "wb"))
+        print('Done computing mode maps')
+        return human_mode_maps
+
+
     def get_data(self, url, local_name):
         if not os.path.exists(local_name):
             print('Downloading ' + url)
@@ -51,13 +78,6 @@ class WCS_Enviroment(BaseEnviroment):
     def mini_batch(self, batch_size = 10):
         batch = self.color_chips.sample(n=batch_size, replace=True)
         return batch.index.values, batch[['L*', 'a*', 'b*']].values
-
-    def human_language_map(self, lang_num):
-        l = self.term_nums.loc[self.term_nums.lang_num == lang_num]
-        map = {chip_i: l.loc[l.chip_num == self.color_chips.loc[chip_i]['#cnum']]['term_num'].mode().values[0] for chip_i in range(330)}
-        return map
-    #Iduna (lang_num47)
-    #map = language_map(47)
 
     # Properties
 
