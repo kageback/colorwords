@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import math
 import gridengine as sge
@@ -88,6 +89,10 @@ def visualize(exp):
     plot_consensus_map(exp)
 
 
+    evaluate.does_noise_matter_for_partitioning_style(exp)
+
+    plot_consensus_over_used_terms(exp)
+
 
 
 def plot_maps(exp):
@@ -126,15 +131,72 @@ def main():
             exp.wait(retry_interval=5)
             exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
-    evaluate.does_noise_matter_for_partitioning_style(exp)
 
-    plot_consensus_over_used_terms(exp)
+    term_usage_to_analyse = list(range(3, 12))
+    iter = 100
+
+    agent_maps = exp.reshape('agent_language_map')
+    agent_term_usage = exp.reshape('term_usage')
+
+    maps_vs_noise = exp.reshape('agent_language_map', as_function_of_axes=['perception_noise'])
+    term_usage_vs_noise = exp.reshape('term_usage', as_function_of_axes=['perception_noise'])
+
+    e = com_enviroments.make('wcs')
+    human_maps = np.array(list(e.human_mode_maps.values()))
+    human_term_usage = np.array([np.unique(m).shape[0] for m in human_maps])
+
+    agent_mean_rand_vs_term_usage = []
+    agent_mean_rand_over_noise_groups_vs_term_usage = []
+    human_mean_rand_vs_term_usage = []
+    cross_rand_vs_term_usage = []
+    cross_agent_consensus_to_humans_vs_term_usage = []
+    for t in term_usage_to_analyse:
+        agent_mean_rand_vs_term_usage += [evaluate.mean_rand_index(agent_maps[agent_term_usage == t])]
+
+        a = np.array([evaluate.mean_rand_index(maps_vs_noise[noise_i][term_usage_vs_noise[noise_i] == t])
+          for noise_i in range(len(maps_vs_noise))])
+
+        agent_mean_rand_over_noise_groups_vs_term_usage += [a[~np.isnan(a)].mean()]
+
+        human_mean_rand_vs_term_usage += [evaluate.mean_rand_index(human_maps[human_term_usage == t])]
+
+        cross_rand_vs_term_usage += [evaluate.mean_rand_index(human_maps[human_term_usage == t],
+                                                              agent_maps[agent_term_usage == t])]
+        if len(agent_maps[agent_term_usage == t]) >= 1:
+            agent_consensus_map = evaluate.compute_consensus_map(agent_maps[agent_term_usage == t], k=t, iter=iter)
+            cross_agent_consensus_to_humans_vs_term_usage += [evaluate.mean_rand_index(human_maps[human_term_usage == t],
+                                                                                       [agent_consensus_map])]
+            e.plot_with_colors(agent_consensus_map,
+                               save_to_path=exp.pipeline_path + 'agent_consensus_map-' + str(t) + '_terms.png')
+        else:
+            cross_agent_consensus_to_humans_vs_term_usage += [np.nan]
+
+
+            ## printing result
+    # print perception noise influence table
+    print('\n'.join(
+        ['Terms used & Mean rand index for all & Mean rand index within noise group \\\\ \\thickhline'] +
+        ['{:2d} & {:.3f} & {:.3f} \\\\ \\hline'.format(
+            term_usage_to_analyse[i],
+            agent_mean_rand_vs_term_usage[i],
+            agent_mean_rand_over_noise_groups_vs_term_usage[i])
+            for i in range(len(term_usage_to_analyse))
+        ]))
+
+    #print human vs machine
+    print('\n'.join(
+        ['Terms used & Human mean rand index for all & Agents mean rand index & Cross human agent rand index & cross agent consensus to human \\\\ \\thickhline'] +
+        ['{:2d} & {:.3f} & {:.3f} & {:.3f} & {:.3f} \\\\ \\hline'.format(
+            term_usage_to_analyse[i],
+            human_mean_rand_vs_term_usage[i],
+            agent_mean_rand_vs_term_usage[i],
+            cross_rand_vs_term_usage[i],
+            cross_agent_consensus_to_humans_vs_term_usage[i])
+            for i in range(len(term_usage_to_analyse))
+        ]))
 
     # Visualize experiment
     #visualize(exp)
-
-
-
 
 
 if __name__ == "__main__":

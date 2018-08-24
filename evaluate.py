@@ -31,6 +31,20 @@ def does_noise_matter_for_partitioning_style(exp):
     maps_per_noise = exp.reshape('agent_language_map', as_function_of_axes=['perception_noise'])
     terms_used_per_noise = exp.reshape('term_usage', as_function_of_axes=['perception_noise'])
 
+    asdf = np.array([mean_rand_index(maps[terms_used == t])
+                     for t in np.unique(terms_used)])
+
+    zxcv = np.array([[mean_rand_index(maps_per_noise[noise_i][terms_used_per_noise[noise_i] == t])
+                      for noise_i in range(len(maps_per_noise))]
+                     for t in np.unique(terms_used)])
+    fasd = np.array([a[~np.isnan(a)].mean() for a in zxcv])
+
+    for i in range(len(np.unique(terms_used))):
+        print('{:2d} & {:.3f} & {:.3f} & {:.3f} \\\\ \\hline'.format(np.unique(terms_used)[i],
+                                                                     asdf[i],
+                                                                     fasd[i],
+                                                                     fasd[i] / asdf[i]))
+
     print('Terms used & Mean rand index for all & Mean rand index within noise group & Ratio \\\\ \\thickhline')
     number_of_terms = np.unique(terms_used)
     for t in number_of_terms:
@@ -56,18 +70,32 @@ def does_noise_matter_for_partitioning_style(exp):
         # print result as latex table
         print('{:2d} & {:.3f} & {:.3f} & {:.3f} \\\\ \\hline'.format(t, mean_rand, mean_per_nois, mean_per_nois / mean_rand))
 
-def mean_rand_index(m):
+
+
+
+
+def mean_rand_index(ce_a, ce_b=None):
+    if ce_b is None:
+        skip_trace = 1
+        ce_b = ce_a
+    else:
+        skip_trace = 0
+        # make sure ce_is the longest
+        if len(ce_b) > len(ce_a):
+            ce = ce_b
+            ce_b = ce_a
+            ce_a = ce
     ar = 0
     n = 0
-    for i in range(len(m)):
-        for j in range(0, i):
-            ar += adjusted_rand_score(m[i], m[j])
+    for i in range(skip_trace, len(ce_a)):
+        for j in range(0, min([i + 1, len(ce_b)]) - skip_trace):
+            # debug code: print('i={},j={}'.format(i, j))
+            ar += adjusted_rand_score(ce_a[i], ce_b[j])
             n += 1
     if n >= 1:
-        mean_rand = ar / n
+        return ar / n
     else:
-        mean_rand = float('nan')
-    return mean_rand
+        return float('nan')
 
 
 def compareMaps(A, B):

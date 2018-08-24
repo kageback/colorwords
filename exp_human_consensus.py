@@ -13,15 +13,21 @@ def main():
 
     # human maps
     human_maps = list(e.human_mode_maps.values())
-    # human_lang_nums = range(1, 31) #31
-    # human_maps = []
-    # for lang_num in human_lang_nums:
-    #     human_maps += [e.human_language_mode_map(lang_num)]
-    #     print('mode map ' + str(lang_num) + ' of' + str(len(human_lang_nums)))
 
     # robo maps
-    exp = Experiment.load('color_avg20.0')
-    robo_maps = exp.get_flattened_results('agent_language_map')
+    exp = Experiment.load('color_fix.1')
+    robo_maps = exp.reshape('agent_language_map')
+
+
+
+    human_rand = evaluate.mean_rand_index(human_maps)
+    print('mean rand for all human maps = {:.3f}'.format(human_rand))
+
+    robo_rand = evaluate.mean_rand_index(robo_maps)
+    print('mean rand for all agent maps = {:.3f}'.format(robo_rand))
+
+    cross_rand = evaluate.mean_rand_index(human_maps, robo_maps)
+    print('mean rand cross human and robot maps = {:.3f}'.format(cross_rand))
 
 
     for k in range(3, 12):
@@ -34,8 +40,8 @@ def main():
         e.plot_with_colors(robo_consensus_map, save_to_path=exp.pipeline_path + 'consensus_language_map_' + str(k) + '.png')
 
         # compare human and robo maps
-        rand_i = adjusted_rand_score(list(human_consensus_map.values()), list(robo_consensus_map.values()))
-        print(rand_i)
+        rand_i = adjusted_rand_score(human_consensus_map, robo_consensus_map)
+        print('rand i between human consensus and agent consensus = {:.3f}'.format(rand_i))
         sims += [rand_i]
 
     sims = np.array(sims)
