@@ -1,6 +1,4 @@
-import sys
 import numpy as np
-import math
 import gridengine as sge
 import com_game
 import viz
@@ -15,19 +13,19 @@ def run(host_name):
     queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
-    exp = Experiment(exp_name='color_fix',
+    exp = Experiment(exp_name='d_long',
                      fixed_params=[('loss_type', 'REINFORCE'),
-                                   ('bw_boost', 2),
+                                   ('bw_boost', 1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 20000),  # 10000
+                                   ('max_epochs', 100),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
                                    ('msg_dim', 15)],
-                     param_ranges=[('avg_over', range(20)),  # 50
-                                   ('perception_noise', [0, 10, 20, 40, 80, 160, 320]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
+                     param_ranges=[('avg_over', range(1)),  # 50
+                                   ('perception_noise', [40]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
                                    ('com_noise', [0.5])],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -119,7 +117,7 @@ def visualize(exp):
 
 
     # print perception noise influence table
-    print('\n'.join(
+    exp.log.info('\n'.join(
         ['Terms used & Mean rand index for all & Mean rand index within noise group \\\\ \\thickhline'] +
         ['{:2d} & {:.3f} & {:.3f} \\\\ \\hline'.format(
             term_usage_to_analyse[i],
@@ -129,7 +127,7 @@ def visualize(exp):
         ]))
 
     #print human vs machine
-    print('\n'.join(
+    exp.log.info('\n'.join(
         ['Terms used & Human mean rand index for all & Agents mean rand index & Cross human agent rand index & cross agent consensus to human \\\\ \\thickhline'] +
         ['{:2d} & {:.3f} & {:.3f} & {:.3f} & {:.3f} \\\\ \\hline'.format(
             term_usage_to_analyse[i],
@@ -160,7 +158,7 @@ def main():
             exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
     # Visualize experiment
-    #visualize(exp)
+    visualize(exp)
 
 
 if __name__ == "__main__":
