@@ -142,7 +142,7 @@ class BaseGame:
         perceptions = th.float_var(perceptions, False)
         all_terms = th.long_var(range(a.msg_dim), False)
 
-        p_WC = a(perception=perceptions).t().data.numpy()
+        p_WC = F.softmax(a(perception=perceptions), dim=1).t().data.numpy()
         p_CW = F.softmax(a(msg=all_terms), dim=1).data.numpy()
 
         S = -np.diag(np.matmul(p_WC.transpose(), (np.log2(p_CW))))
