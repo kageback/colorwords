@@ -19,7 +19,17 @@ def compute_consensus_map(cluster_ensemble, iter, k):
                     corr_graph[j, i] = corr_graph[i, j] - 1
 
     consensus = Correlation_Clustering.max_correlation(corr_graph, k, iter)
-    #consensus = {k: consensus[k] for k in range(len(consensus))}
+    return consensus
+
+
+def compute_cielab_map(wcs, k, iterations=10, bw_boost=1):
+    N = wcs.data_dim()
+    corr_graph = np.zeros((N, N))
+    for i in range(0, N):
+        for j in range(0, i):
+            corr_graph[i, j] = (wcs.sim_index(i, j, bw_boost=bw_boost).numpy() - 0.5)*100
+            corr_graph[j, i] = (wcs.sim_index(i, j, bw_boost=bw_boost).numpy() - 0.5)*100
+    consensus = Correlation_Clustering.max_correlation(corr_graph, k, iterations)
     return consensus
 
 

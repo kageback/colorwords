@@ -8,6 +8,11 @@ from sklearn.metrics.cluster import adjusted_rand_score
 def main():
     consensus_iters = 10
     e = com_enviroments.make('wcs')
+
+    k = 3
+
+
+
     sims= []
 
 
@@ -21,16 +26,19 @@ def main():
 
 
     human_rand = evaluate.mean_rand_index(human_maps)
-    print('mean rand for all human maps = {:.3f}'.format(human_rand))
+    exp.log.info('mean rand for all human maps = {:.3f}'.format(human_rand))
 
     robo_rand = evaluate.mean_rand_index(robo_maps)
-    print('mean rand for all agent maps = {:.3f}'.format(robo_rand))
+    exp.log.info('mean rand for all agent maps = {:.3f}'.format(robo_rand))
 
     cross_rand = evaluate.mean_rand_index(human_maps, robo_maps)
-    print('mean rand cross human and robot maps = {:.3f}'.format(cross_rand))
+    exp.log.info('mean rand cross human and robot maps = {:.3f}'.format(cross_rand))
+
 
 
     for k in range(3, 12):
+        cielab_map = evaluate.compute_cielab_map(e, k, iter=consensus_iters, bw_boost=1)
+        e.plot_with_colors(cielab_map, save_to_path=exp.pipeline_path + 'cielab_map_' + str(k) + '.png')
 
         human_consensus_map = evaluate.compute_consensus_map(human_maps, k=k, iter=consensus_iters)
         e.plot_with_colors(human_consensus_map, save_to_path=exp.pipeline_path + 'human_consensus_language_map_' + str(k) + '.png')

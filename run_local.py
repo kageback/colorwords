@@ -62,19 +62,19 @@ def visualize(pipeline_name):
     print('plot results')
     exp = Experiment.load(pipeline_name)
 
-    viz.plot_result(exp,
+    viz.plot_with_std(exp,
                     'gibson_cost', 'com_noise', 'msg_dim',
-                    measure_label='Gibson communication efficiency',
-                    x_label='Communication noise',
-                    z_label='terms')
-    viz.plot_result(exp, 'gibson_cost', 'perception_noise', 'msg_dim')
-    viz.plot_result(exp, 'gibson_cost', 'com_noise', 'perception_noise')
+                      measure_label='Gibson communication efficiency',
+                      x_label='Communication noise',
+                      z_label='terms')
+    viz.plot_with_std(exp, 'gibson_cost', 'perception_noise', 'msg_dim')
+    viz.plot_with_std(exp, 'gibson_cost', 'com_noise', 'perception_noise')
 
-    viz.plot_result(exp, 'regier_cost', 'com_noise', 'msg_dim')
-    viz.plot_result(exp, 'wellformedness', 'com_noise', 'msg_dim')
-    viz.plot_result(exp, 'term_usage', 'com_noise', 'msg_dim')
-    viz.plot_result(exp, 'term_usage', 'perception_noise', 'msg_dim')
-    viz.plot_result(exp, 'term_usage', 'perception_noise', 'com_noise')
+    viz.plot_with_std(exp, 'regier_cost', 'com_noise', 'msg_dim')
+    viz.plot_with_std(exp, 'wellformedness', 'com_noise', 'msg_dim')
+    viz.plot_with_std(exp, 'term_usage', 'com_noise', 'msg_dim')
+    viz.plot_with_std(exp, 'term_usage', 'perception_noise', 'msg_dim')
+    viz.plot_with_std(exp, 'term_usage', 'perception_noise', 'com_noise')
 
 
 if __name__ == "__main__":

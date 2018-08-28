@@ -96,7 +96,7 @@ class WCS_Enviroment(BaseEnviroment):
         reward = (color_codes == I).float() - (color_codes != I).float()
         return reward
 
-    def regier_reward(self, cielab_color_x, cielab_color_y, c=0.001, bw_boost=0):
+    def regier_reward(self, cielab_color_x, cielab_color_y, c=0.001, bw_boost=1):
         # CIELAB distance 76 (euclidean distance)
         diff = (cielab_color_x - cielab_color_y)
         if bw_boost != 1:
@@ -107,7 +107,7 @@ class WCS_Enviroment(BaseEnviroment):
         # Regier similarity
         return torch.exp(-c * torch.pow(dist, 2))
 
-    def sim_index(self, chip_index_x, chip_index_y, c=0.001):
+    def sim_index(self, chip_index_x, chip_index_y, bw_boost=1):
         # sim func used for computing the evaluation metrics
         color_x = th.float_var(self.cielab_map[chip_index_x]).unsqueeze(0)
         color_y = th.float_var(self.cielab_map[chip_index_y]).unsqueeze(0)

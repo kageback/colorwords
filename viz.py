@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from com_enviroments import wcs
 
 
-def plot_result(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None):
+def plot_with_std(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None):
     if measure_label is None:
         measure_label = measure_id.replace('_', ' ')
     if x_label is None:
@@ -83,50 +83,60 @@ def plot_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + x_id + '_for_' +  z_id +'.png'
     plt.savefig(fig_name)
 
+def plot_with_conf2(exp, measure_id, group_by_measure_id, z_id, measure_label=None, group_by_measure_label=None, z_label=None, fmt='-'):
+    if measure_label is None:
+        measure_label = measure_id.replace('_', ' ')
+    if group_by_measure_label is None:
+        group_by_measure_label = group_by_measure_id.replace('_', ' ')
+    if z_label is None:
+        z_label = z_id.replace('_', ' ')
 
-def plot_colormap(pipeline, taskid, plot_file_name):
-    # Load results
-    res_path = pipeline.pipeline_path + '/task.' + str(taskid) + '.result.pkl'
-    with open(res_path, 'rb') as f:
-        res = pickle.load(f)
-    V = {k: res['V'][k]['word'] for k in range(330)}
-    wcs.plot_with_colors(V, pipeline.pipeline_path + '/' + plot_file_name + '.png')
+    measure = exp.reshape(measure_id, as_function_of_axes=[z_id])
+    group_by_measure = exp.reshape(group_by_measure_id, as_function_of_axes=[z_id])
+
+    x = np.unique(group_by_measure)
+    z = exp.param_ranges[z_id]
 
 
-def plot_task_range(pipeline, start_task, range_name=''):
-    num_of_words = range(3, 12)
-    for taskid, nwords in zip(range(start_task, start_task + len(num_of_words)), num_of_words):
-        plot_file_name = 'fig_colormap_' + range_name + '_' + '_nwords' + str(nwords) + '_' + pipeline.pipeline_name.replace('.', '') + '_task' + str(taskid)
-        plot_colormap(pipeline, taskid, plot_file_name)
+    fig, ax = plt.subplots()
+    for z_i, z_value in enumerate(z):
+        means = []
+        cis = []
+        for t in x:
+            mean, ci = estimate_mean(measure[z_i][group_by_measure[z_i] == t])
+            means += [mean]
+            cis += [np.array(ci)]
+        mean = np.array(mean)
+        cis = np.array(cis)
+        ax.plot(x, means, fmt, label=z_label + '= {0:.1f}'.format(z_value))
+        ax.fill_between(x, cis[:, 0], cis[:, 1], alpha=0.2)
 
+    ax.legend()
+    plt.ylabel(measure_label)
+    plt.xlabel(group_by_measure_label)
+
+    fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + group_by_measure_id + '_for_' +  z_id +'.png'
+    plt.savefig(fig_name)
+
+from scipy.stats import t
+def estimate_mean(x, confidence_interval=0.95):
+    n = x.shape[-1]
+
+    mean = x.mean(axis=-1)
+    stddev = x.std(axis=-1, ddof=1)  # Sample variance
+
+    # Get the endpoints of the range that contains 95% of the distribution
+    # The degree used in calculations is N - ddof
+    t_bounds = t.interval(confidence_interval, n - 1)
+    ci = [mean + c * stddev / np.sqrt(n) for c in t_bounds]
+    return mean, ci
 
 from gridengine.pipeline import Experiment
 def main():
-    exp = Experiment.load('num_symbs.0')
-    #plot_com_noise_cost(exp)
-    # wcs.plot_with_colors(wcs.language_map(32), 'Culina.png')
-    # wcs.plot_with_colors(wcs.language_map(36), 'Ejagam.png')
-    # wcs.plot_with_colors(wcs.language_map(47), 'iduna.png')
-    # wcs.plot_with_colors(wcs.language_map(16), 'Buglere.png')
-    #
-    # job_id = 'avg50.0'
-    # job = ge.Job(job_id=job_id, load_existing_job=True)
-    #plot_costs(job)
-
-    # plot color maps
-    #plot_colormap(job, 350, 'fig_colormap_dev2')
-    # no noise different #words
-    # start_task=0 => noise = 0
-    # start_task=342 => noise = 25
-
-    #plot_task_range(job, 0, 'noise0')
-    #plot_task_range(job, 342, 'noise25')
-    #plot_task_range(job, 495,'noise50')
-    #plot_task_range(job, 603,'noise100')
-
-
-
-
+    exp = Experiment.load('color_fix.10')
+    plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise',z_label='com $\sigma^2$')
+    plot_with_conf2(exp, 'gibson_cost', 'term_usage', 'com_noise')
+    plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise')
 
 
 

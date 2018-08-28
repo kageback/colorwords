@@ -13,18 +13,18 @@ def run(host_name):
     queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
-    exp = Experiment(exp_name='d_long',
+    exp = Experiment(exp_name='dev',
                      fixed_params=[('loss_type', 'REINFORCE'),
-                                   ('bw_boost', 1),
+                                   ('bw_boost', 1.1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 100),  # 10000
+                                   ('max_epochs', 10000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
                                    ('msg_dim', 15)],
-                     param_ranges=[('avg_over', range(1)),  # 50
+                     param_ranges=[('avg_over', range(10)),  # 50
                                    ('perception_noise', [40]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
                                    ('com_noise', [0.5])],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
@@ -94,6 +94,9 @@ def visualize(exp):
     human_mean_rand_vs_term_usage = []
     cross_rand_vs_term_usage = []
     cross_agent_consensus_to_humans_vs_term_usage = []
+    human_to_cielab_rand = []
+    human_to_random_rand = []
+
     for t in term_usage_to_analyse:
         agent_mean_rand_vs_term_usage += [evaluate.mean_rand_index(agent_maps[agent_term_usage == t])]
 
@@ -115,6 +118,11 @@ def visualize(exp):
         else:
             cross_agent_consensus_to_humans_vs_term_usage += [np.nan]
 
+        human_to_cielab_rand += [evaluate.mean_rand_index(human_maps[human_term_usage == t],
+                                                          [evaluate.compute_cielab_map(e, k=t, iterations=10)])]
+
+        human_to_random_rand += [evaluate.mean_rand_index(human_maps[human_term_usage == t], [[np.random.randint(t) for n in range(330)] for n in range(100)])]
+
 
     # print perception noise influence table
     exp.log.info('\n'.join(
@@ -129,12 +137,14 @@ def visualize(exp):
     #print human vs machine
     exp.log.info('\n'.join(
         ['Terms used & Human mean rand index for all & Agents mean rand index & Cross human agent rand index & cross agent consensus to human \\\\ \\thickhline'] +
-        ['{:2d} & {:.3f} & {:.3f} & {:.3f} & {:.3f} \\\\ \\hline'.format(
+        ['{:2d} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f}\\\\ \\hline'.format(
             term_usage_to_analyse[i],
             human_mean_rand_vs_term_usage[i],
             agent_mean_rand_vs_term_usage[i],
             cross_rand_vs_term_usage[i],
-            cross_agent_consensus_to_humans_vs_term_usage[i])
+            cross_agent_consensus_to_humans_vs_term_usage[i],
+            human_to_cielab_rand[i],
+            human_to_random_rand[i])
             for i in range(len(term_usage_to_analyse))
         ]))
 
@@ -143,6 +153,10 @@ def visualize(exp):
                        x_label='perception $\sigma^2$',
                        z_label='com $\sigma^2$', )
     viz.hist(exp, 'term_usage', 'perception_noise')
+
+    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp, 'gibson_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
 
 
 def main():
