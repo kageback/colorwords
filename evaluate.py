@@ -1,25 +1,10 @@
-import numpy as np
 import itertools
 import math
-import Correlation_Clustering
+
+import numpy as np
 from sklearn.metrics.cluster import adjusted_rand_score
 
-
-def compute_consensus_map(cluster_ensemble, iter, k):
-    N = len(cluster_ensemble[0])
-    corr_graph = np.zeros((N, N))
-    for ss in cluster_ensemble:
-        for i in range(0, N):
-            for j in range(0, i):
-                if ss[i] == ss[j]:
-                    corr_graph[i, j] = corr_graph[i, j] + 1
-                    corr_graph[j, i] = corr_graph[i, j] + 1
-                else:
-                    corr_graph[i, j] = corr_graph[i, j] - 1
-                    corr_graph[j, i] = corr_graph[i, j] - 1
-
-    consensus = Correlation_Clustering.max_correlation(corr_graph, k, iter)
-    return consensus
+import Correlation_Clustering
 
 
 def compute_cielab_map(wcs, k, iterations=10, bw_boost=1):

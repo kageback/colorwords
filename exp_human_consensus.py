@@ -1,3 +1,4 @@
+import Correlation_Clustering
 import gridengine as sge
 import numpy as np
 import com_enviroments
@@ -40,10 +41,10 @@ def main():
         cielab_map = evaluate.compute_cielab_map(e, k, iter=consensus_iters, bw_boost=1)
         e.plot_with_colors(cielab_map, save_to_path=exp.pipeline_path + 'cielab_map_' + str(k) + '.png')
 
-        human_consensus_map = evaluate.compute_consensus_map(human_maps, k=k, iter=consensus_iters)
+        human_consensus_map = Correlation_Clustering.compute_consensus_map(human_maps, k=k, iter=consensus_iters)
         e.plot_with_colors(human_consensus_map, save_to_path=exp.pipeline_path + 'human_consensus_language_map_' + str(k) + '.png')
 
-        robo_consensus_map = evaluate.compute_consensus_map(robo_maps, k=k, iter=consensus_iters)
+        robo_consensus_map = Correlation_Clustering.compute_consensus_map(robo_maps, k=k, iter=consensus_iters)
 
         e.plot_with_colors(robo_consensus_map, save_to_path=exp.pipeline_path + 'consensus_language_map_' + str(k) + '.png')
 

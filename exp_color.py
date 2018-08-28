@@ -1,4 +1,6 @@
 import numpy as np
+
+import Correlation_Clustering
 import gridengine as sge
 import com_game
 import viz
@@ -13,19 +15,19 @@ def run(host_name):
     queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
-    exp = Experiment(exp_name='dev',
+    exp = Experiment(exp_name='color',
                      fixed_params=[('loss_type', 'REINFORCE'),
                                    ('bw_boost', 1.1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 10000),  # 10000
+                                   ('max_epochs', 20000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
                                    ('msg_dim', 15)],
-                     param_ranges=[('avg_over', range(10)),  # 50
-                                   ('perception_noise', [40]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
+                     param_ranges=[('avg_over', range(25)),  # 50
+                                   ('perception_noise', [0, 10, 20, 40, 80, 160, 320]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
                                    ('com_noise', [0.5])],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -110,7 +112,7 @@ def visualize(exp):
         cross_rand_vs_term_usage += [evaluate.mean_rand_index(human_maps[human_term_usage == t],
                                                               agent_maps[agent_term_usage == t])]
         if len(agent_maps[agent_term_usage == t]) >= 1:
-            agent_consensus_map = evaluate.compute_consensus_map(agent_maps[agent_term_usage == t], k=t, iter=iter)
+            agent_consensus_map = Correlation_Clustering.compute_consensus_map(agent_maps[agent_term_usage == t], k=t, iter=iter)
             cross_agent_consensus_to_humans_vs_term_usage += [evaluate.mean_rand_index(human_maps[human_term_usage == t],
                                                                                        [agent_consensus_map])]
             e.plot_with_colors(agent_consensus_map,

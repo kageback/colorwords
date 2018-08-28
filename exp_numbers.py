@@ -1,5 +1,7 @@
 import argparse
 import numpy as np
+
+import Correlation_Clustering
 import gridengine as sge
 import com_game
 import viz
@@ -116,7 +118,7 @@ def main():
 
 
     cluster_ensemble = exp.get_flattened_results('agent_language_map')
-    consensus = evaluate.compute_consensus_map(cluster_ensemble, k=10, iter=100)
+    consensus = Correlation_Clustering.compute_consensus_map(cluster_ensemble, k=10, iter=100)
     print(consensus.values())
 
     # Visualize experiment

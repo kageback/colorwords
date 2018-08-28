@@ -71,3 +71,20 @@ if __name__ == "__main__":
     lables = np.array([0,0,0,1,1,1,2,2,2])
 
     sol1 = max_correlation(sim, 3, 5)
+
+
+def compute_consensus_map(cluster_ensemble, iter, k):
+    N = len(cluster_ensemble[0])
+    corr_graph = np.zeros((N, N))
+    for ss in cluster_ensemble:
+        for i in range(0, N):
+            for j in range(0, i):
+                if ss[i] == ss[j]:
+                    corr_graph[i, j] = corr_graph[i, j] + 1
+                    corr_graph[j, i] = corr_graph[i, j] + 1
+                else:
+                    corr_graph[i, j] = corr_graph[i, j] - 1
+                    corr_graph[j, i] = corr_graph[i, j] - 1
+
+    consensus = max_correlation(corr_graph, k, iter)
+    return consensus
