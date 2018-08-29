@@ -7,6 +7,8 @@ from gridengine.queue import Queue, Local
 
 import com_enviroments
 import agents
+import evaluate
+
 
 def run():
 
@@ -46,7 +48,7 @@ def run():
         V = game.agent_language_map(env, a=game_outcome)
 
         exp.set_result('gibson_cost', params_i, game.compute_gibson_cost(env, a=game_outcome)[1])
-        exp.set_result('regier_cost', params_i, game.communication_cost_regier(env, V=V))
+        exp.set_result('regier_cost', params_i, evaluate.communication_cost_regier(env, V=V))
         exp.set_result('wellformedness', params_i, game.wellformedness(env, V=V))
         exp.set_result('term_usage', params_i, game.compute_term_usage(V=V)[0])
 

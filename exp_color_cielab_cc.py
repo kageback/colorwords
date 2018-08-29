@@ -44,6 +44,9 @@ def run(host_name, pipeline=''):
                             exp.fixed_params['iterations']).result()
 
         exp.set_result('language_map', params_i, consensus)
+        exp.set_result('regier_cost', params_i, exp.run(evaluate.communication_cost_regier, wcs, V=consensus).result())
+        exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, wcs, V=consensus).result())
+        exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=consensus).result())
 
     exp.save()
     print("\nAll tasks queued to clusters")

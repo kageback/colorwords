@@ -65,9 +65,9 @@ def run(host_name):
 
         exp.set_result('agent_language_map', params_i, V)
         exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env, a=game_outcome).result(1))
-        exp.set_result('regier_cost', params_i, exp.run(game.communication_cost_regier, env, V=V).result())
-        exp.set_result('wellformedness', params_i, exp.run(game.wellformedness, env, V=V).result())
-        exp.set_result('term_usage', params_i, exp.run(game.compute_term_usage, V=V).result())
+        exp.set_result('regier_cost', params_i, exp.run(evaluate.communication_cost_regier, env, V=V).result())
+        exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, env, V=V).result())
+        exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=V).result())
 
 
     print("\nAll tasks queued to clusters")
