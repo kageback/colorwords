@@ -1,5 +1,8 @@
 import argparse
+import gridengine as sge
 from gridengine.ge_queue import GEQueue, Local
+from gridengine.pipeline import Experiment
+
 
 def create_queue(host_name):
     if host_name == 'local':
@@ -24,4 +27,12 @@ def parse_script_arguments():
     parser.add_argument('--resync', type=str, default='n',
                         help='resynchronize loaded pipeline (y | [n])')
 
-    return parser.parse_args()
+    return parser
+
+
+def load_exp(pipeline, resync='n'):
+    exp = Experiment.load(pipeline)
+    if resync == 'y':
+        exp.wait(retry_interval=5)
+        exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
+    return exp

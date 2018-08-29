@@ -10,7 +10,11 @@ import com_enviroments
 import agents
 import exp_shared
 
-def run(host_name):
+
+def run(host_name, pipeline=''):
+    if pipeline != '':
+        return exp_shared.load_exp(pipeline)
+
     # Create and run new experiment
     queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
@@ -161,21 +165,14 @@ def visualize(exp):
     viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
 
 
-def main():
-    args = exp_shared.parse_script_arguments()
+def main(args):
+
     # Run experiment
-    if args.pipeline == '':
-        exp = run(args.host_name)
-    else:
-        # Load existing experiment
-        exp = Experiment.load(args.pipeline)
-        if args.resync == 'y':
-            exp.wait(retry_interval=5)
-            exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
+    exp = run(args.host_name, pipeline=args.pipeline)
 
     # Visualize experiment
     visualize(exp)
 
 
 if __name__ == "__main__":
-    main()
+    main(exp_shared.parse_script_arguments().parse_args())
