@@ -1,6 +1,8 @@
 import numpy as np
-import gridengine as sge
 import viz
+import matplotlib.pyplot as plt
+import gridengine as sge
+
 import evaluate
 from gridengine.pipeline import Experiment
 import com_enviroments
@@ -8,15 +10,17 @@ import exp_shared
 
 import exp_color_rl
 import exp_color_cielab_cc
+import exp_color_random
 import Correlation_Clustering
 
-def run(host_name, pipeline='', exp_rl_id='', exp_ccc_id=''):
+def run(host_name, pipeline='', exp_rl_id='', exp_ccc_id='', exp_random_id=''):
     if pipeline != '':
         return exp_shared.load_exp(pipeline)
 
     exp = Experiment(exp_name='color_dev',
                      fixed_params=[('exp_rl_id', exp_rl_id),
-                                   ('exp_ccc_id', exp_ccc_id)])
+                                   ('exp_ccc_id', exp_ccc_id),
+                                   ('exp_random_id', exp_random_id)])
 
     # RL experiment
     exp_rl = exp_color_rl.run(host_name, pipeline=exp.fixed_params['exp_rl_id'])
@@ -26,94 +30,52 @@ def run(host_name, pipeline='', exp_rl_id='', exp_ccc_id=''):
     exp_ccc = exp_color_cielab_cc.run(host_name, pipeline=exp.fixed_params['exp_ccc_id'])
     exp.set_result('exp_ccc', value=exp_ccc)
 
+
+    # random baseline experiment
+    exp_random = exp_color_random.run(host_name, pipeline=exp.fixed_params['exp_random_id'])
+    exp.set_result('exp_random', value=exp_random)
+
     exp.save()
 
     return exp
 
 
 def visualize(exp):
-    exp_rl = exp.get('exp_rl')
-    exp_ccc = exp.get('exp_ccc')
 
-    term_usage_to_analyse = list(range(3, 12))
-    iter = 10
-
-    agent_maps = exp_rl.reshape('agent_language_map')
-    agent_term_usage = exp_rl.reshape('term_usage')
-
-    maps_vs_noise = exp_rl.reshape('agent_language_map', as_function_of_axes=['perception_noise'])
-    term_usage_vs_noise = exp_rl.reshape('term_usage', as_function_of_axes=['perception_noise'])
-
-    wcs = com_enviroments.make('wcs')
-    human_maps = np.array(list(wcs.human_mode_maps.values()))
-    human_term_usage = np.array([np.unique(m).shape[0] for m in human_maps])
-
-    agent_mean_rand_vs_term_usage = []
-    agent_mean_rand_over_noise_groups_vs_term_usage = []
-    human_mean_rand_vs_term_usage = []
-    cross_rand_vs_term_usage = []
-    cross_agent_consensus_to_humans_vs_term_usage = []
-    human_to_cielab_rand = []
-    human_to_random_rand = []
-
-    for t in term_usage_to_analyse:
-        agent_mean_rand_vs_term_usage += [evaluate.mean_rand_index(agent_maps[agent_term_usage == t])]
-
-        a = np.array([evaluate.mean_rand_index(maps_vs_noise[noise_i][term_usage_vs_noise[noise_i] == t])
-          for noise_i in range(len(maps_vs_noise))])
-
-        agent_mean_rand_over_noise_groups_vs_term_usage += [a[~np.isnan(a)].mean()]
-
-        human_mean_rand_vs_term_usage += [evaluate.mean_rand_index(human_maps[human_term_usage == t])]
-
-        cross_rand_vs_term_usage += [evaluate.mean_rand_index(human_maps[human_term_usage == t],
-                                                              agent_maps[agent_term_usage == t])]
-        if len(agent_maps[agent_term_usage == t]) >= 1:
-            agent_consensus_map = Correlation_Clustering.compute_consensus_map(agent_maps[agent_term_usage == t], k=t, iter=iter)
-            cross_agent_consensus_to_humans_vs_term_usage += [evaluate.mean_rand_index(human_maps[human_term_usage == t],
-                                                                                       [agent_consensus_map])]
-            wcs.plot_with_colors(agent_consensus_map,
-                               save_to_path=exp_rl.pipeline_path + 'agent_consensus_map-' + str(t) + '_terms.png')
-        else:
-            cross_agent_consensus_to_humans_vs_term_usage += [np.nan]
-
-        human_to_cielab_rand += [evaluate.mean_rand_index(human_maps[human_term_usage == t],
-                                                          [evaluate.compute_cielab_map(wcs, k=t, iterations=10)])]
-
-        human_to_random_rand += [evaluate.mean_rand_index(human_maps[human_term_usage == t], [[np.random.randint(t) for n in range(330)] for n in range(100)])]
+    cost_plot(exp, 'regier_cost')
+    cost_plot(exp, 'wellformedness')
 
 
-    # print perception noise influence table
-    exp_rl.log.info('\n'.join(
-        ['Terms used & Mean rand index for all & Mean rand index within noise group \\\\ \\thickhline'] +
-        ['{:2d} & {:.3f} & {:.3f} \\\\ \\hline'.format(
-            term_usage_to_analyse[i],
-            agent_mean_rand_vs_term_usage[i],
-            agent_mean_rand_over_noise_groups_vs_term_usage[i])
-            for i in range(len(term_usage_to_analyse))
-        ]))
-
-    #print human vs machine
-    exp_rl.log.info('\n'.join(
-        ['Terms used & Human mean rand index for all & Agents mean rand index & Cross human agent rand index & cross agent consensus to human \\\\ \\thickhline'] +
-        ['{:2d} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f}\\\\ \\hline'.format(
-            term_usage_to_analyse[i],
-            human_mean_rand_vs_term_usage[i],
-            agent_mean_rand_vs_term_usage[i],
-            cross_rand_vs_term_usage[i],
-            cross_agent_consensus_to_humans_vs_term_usage[i],
-            human_to_cielab_rand[i],
-            human_to_random_rand[i])
-            for i in range(len(term_usage_to_analyse))
-        ]))
-
-    # term usage across different level of noise
-    viz.plot_with_conf(exp_rl, 'term_usage', 'perception_noise', 'com_noise',
-                       x_label='perception $\sigma^2$',
-                       z_label='com $\sigma^2$', )
-    viz.hist(exp_rl, 'term_usage', 'perception_noise')
+def cost_plot(exp, measure_id):
+    group_by_measure_id = 'term_usage'
+    fig, ax = plt.subplots()
+    add_line_to_axes(ax, exp.get('exp_rl'), measure_id, group_by_measure_id, line_label='RL')
+    add_line_to_axes(ax, exp.get('exp_ccc'), measure_id, group_by_measure_id, line_label='CIELAB CC')
+    add_line_to_axes(ax, exp.get('exp_random'), measure_id, group_by_measure_id, line_label='Random')
+    ax.legend()
+    measure_label = measure_id.replace('_', ' ')
+    group_by_measure_label = group_by_measure_id.replace('_', ' ')
+    plt.ylabel(measure_label)
+    plt.xlabel(group_by_measure_label)
+    plt.xlim([3,11])
+    fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + group_by_measure_id + '.png'
+    plt.savefig(fig_name)
 
 
+def add_line_to_axes(ax, exp_rl, measure_id, group_by_measure_id, line_label='RL', fmt='-'):
+    measure = exp_rl.reshape(measure_id)
+    group_by_measure = exp_rl.reshape(group_by_measure_id)
+    x = np.unique(group_by_measure)
+    means = []
+    cis = []
+    for t in x:
+        mean, ci = viz.estimate_mean(measure[group_by_measure == t])
+        means += [mean]
+        cis += [np.array(ci)]
+    means = np.array(means)
+    cis = np.array(cis)
+    ax.plot(x, means, fmt, label=line_label)
+    ax.fill_between(x, cis[:, 0], cis[:, 1], alpha=0.2)
 
 
 def com_plots(exp_rl):
@@ -124,14 +86,18 @@ def com_plots(exp_rl):
 
 def main(args):
     # Run experiment
-    exp = run(args.host_name, pipeline=args.pipeline, exp_rl_id=args.exp_rl_id, exp_ccc_id=args.exp_ccc_id)
+    exp = run(args.host_name,
+              pipeline=args.pipeline,
+              exp_rl_id=args.exp_rl_id,
+              exp_ccc_id=args.exp_ccc_id,
+              exp_random_id=args.exp_random_id)
 
     # Visualize experiment
-    # visualize(exp)
+    visualize(exp)
 
     # Todo regier_cost/gibson_cost/wellformedness per term usage including baselines
 
-    com_plots(exp.get('exp_rl'))
+    #com_plots(exp.get('exp_ccc'))
 
 
 if __name__ == "__main__":
@@ -140,4 +106,6 @@ if __name__ == "__main__":
                         help='cielab correlation clustering experiment')
     parser.add_argument('--exp_rl_id', type=str, default='',
                         help='Reinforcement learning experiment')
+    parser.add_argument('--exp_random_id', type=str, default='',
+                        help='random baseline')
     main(parser.parse_args())

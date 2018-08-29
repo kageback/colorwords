@@ -106,7 +106,7 @@ def plot_with_conf2(exp, measure_id, group_by_measure_id, z_id, measure_label=No
             mean, ci = estimate_mean(measure[z_i][group_by_measure[z_i] == t])
             means += [mean]
             cis += [np.array(ci)]
-        mean = np.array(mean)
+        means = np.array(means)
         cis = np.array(cis)
         ax.plot(x, means, fmt, label=z_label + '= {0:.1f}'.format(z_value))
         ax.fill_between(x, cis[:, 0], cis[:, 1], alpha=0.2)

@@ -10,6 +10,7 @@ import com_enviroments
 import agents
 import exp_shared
 
+
 def run(host_name, pipeline=''):
     if pipeline != '':
         return exp_shared.load_exp(pipeline)
@@ -18,10 +19,10 @@ def run(host_name, pipeline=''):
     queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
-    exp = Experiment(exp_name='ccc_dev',
+    exp = Experiment(exp_name='ccc',
                      fixed_params=[('iterations', 10),
                                    ('env', 'wcs')],
-                     param_ranges=[('bw_boost', [1, 1.1]),
+                     param_ranges=[('bw_boost', [1, 0.5, 2, 10]),
                                    ('term_usage', range(3, 12))],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -55,11 +56,20 @@ def run(host_name, pipeline=''):
     exp.wait(retry_interval=5)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
+    return exp
+
+
+def visualize(exp):
+    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'bw_boost')
+    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'bw_boost')
+    viz.plot_with_conf2(exp, 'term_usage', 'term_usage', 'bw_boost')
+
 
 def main(args):
     # Run experiment
-    exp = run(args.host_name)
+    exp = run(args.host_name, args.pipeline)
 
+    visualize(exp)
 
 if __name__ == "__main__":
     main(exp_shared.parse_script_arguments().parse_args())

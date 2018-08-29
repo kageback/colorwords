@@ -111,7 +111,7 @@ class WCS_Enviroment(BaseEnviroment):
         # sim func used for computing the evaluation metrics
         color_x = th.float_var(self.cielab_map[chip_index_x]).unsqueeze(0)
         color_y = th.float_var(self.cielab_map[chip_index_y]).unsqueeze(0)
-        return self.regier_reward(color_x, color_y)
+        return self.regier_reward(color_x, color_y, bw_boost=bw_boost)
 
     # plotting
     def plot_with_colors(self, V, save_to_path='dev.png', y_wcs_range='ABCDEFGHIJ', x_wcs_range=range(0, 41), use_real_color=True):

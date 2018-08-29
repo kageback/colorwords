@@ -67,6 +67,73 @@ class BaseGame:
 
         return list(V.values())
 
+    def communication_cost_regier(self, env, V, sum_over_whole_s=False, norm_over_s=False, weight_by_size=False):
+        s = {}
+        for i in range(len(V)):
+            s[i] = 0
+            for j in range(len(V)):
+                if V[i] == V[j]:
+                    s[i] += env.sim_index(i, j)
+
+        l = {}
+        for t in range(len(V)):
+            z = 0
+            cat_size = 0
+            for i in range(len(V)):
+
+                if sum_over_whole_s or V[i] == V[t]:
+                    z += s[i]
+                    cat_size += 1
+            l[t] = s[t] / z
+            if weight_by_size:
+                l[t] *= cat_size / len(V)
+
+        if norm_over_s:
+            l_z = 0
+            for x in l.values():
+                l_z += x
+            for i in l.keys():
+                l[i] /= l_z
+
+        # debug code to check it l sums to one
+        l_z = 0
+        for x in l.values():
+            l_z += x
+
+        E = 0
+        for t in range(len(V)):
+            E += -np.log2(l[t])
+        E = E / len(V)
+
+        return E
+
+    def wellformedness(self, env, V):
+        Sw = 0
+        for i in range(len(V)):
+            for j in range(len(V)):
+                if V[i] == V[j]:
+                    Sw += env.sim_index(i, j)
+        Da = 0
+        for i in range(len(V)):
+            for j in range(len(V)):
+                if V[i] != V[j]:
+                    Da += 1 - env.sim_index(i, j)
+        W = Sw + Da
+        return W
+
+    def compute_term_usage(self, V):
+        def inc_dict(dict, key, increment):
+            if key in dict.keys():
+                dict[key] += increment
+            else:
+                dict[key] = increment
+
+        cat_sizes = {}
+        for v in V:
+            inc_dict(cat_sizes, v, 1)
+        n = len(cat_sizes)
+        return n, cat_sizes
+
     # other metrics
     def compute_gibson_cost(self, env, a):
         _, perceptions = env.full_batch()
