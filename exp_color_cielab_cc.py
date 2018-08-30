@@ -20,9 +20,10 @@ def run(host_name='local', pipeline=''):
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
     exp = Experiment(exp_name='ccc',
-                     fixed_params=[('iterations', 100),
+                     fixed_params=[('iterations', 10),
                                    ('env', 'wcs')],
-                     param_ranges=[('bw_boost', [1, 0.5, 2, 10]),
+                     param_ranges=[('avg_over', range(5)),
+                                   ('bw_boost', [1]),
                                    ('term_usage', range(3, 12))],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -43,6 +44,9 @@ def run(host_name='local', pipeline=''):
                             corr_graph,
                             params_v[exp.axes['term_usage']],
                             exp.fixed_params['iterations']).result()
+
+        #print(params_v)
+        #print('set {} actual {}'.format(params_v[exp.axes['term_usage']], exp.run(evaluate.compute_term_usage, V=consensus).result().get()))
 
         exp.set_result('language_map', params_i, consensus)
         exp.set_result('regier_cost', params_i, exp.run(evaluate.communication_cost_regier, wcs, V=consensus).result())
