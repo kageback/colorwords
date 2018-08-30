@@ -15,21 +15,21 @@ def run(host_name, pipeline=''):
     if pipeline != '':
         return exp_shared.load_exp(pipeline)
 
+    wcs = com_enviroments.make('wcs')
+
     # Create and run new experiment
-    exp = Experiment(exp_name='random',
+    exp = Experiment(exp_name='human',
                      fixed_params=[('env', 'wcs')],
-                     param_ranges=[('avg_over', range(25)),
-                                   ('term_usage', range(3, 12))])
+                     param_ranges=[('lang_id', list(wcs.human_mode_maps.keys()))])
 
 
-    wcs = com_enviroments.make(exp.fixed_params['env'])
+
     exp_i = 0
     for (params_i, params_v) in exp:
         print('Scheduled %d experiments out of %d' % (exp_i, len(list(exp))))
         exp_i += 1
 
-        N = wcs.data_dim()
-        map = np.array([np.random.randint(params_v[exp.axes['term_usage']]) for n in range(N)])
+        map = np.array(wcs.human_mode_maps[params_v[exp.axes['lang_id']]])
 
         exp.set_result('language_map', params_i, map)
         exp.set_result('regier_cost', params_i, exp.run(evaluate.communication_cost_regier, wcs, V=map).result())

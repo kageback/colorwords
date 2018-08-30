@@ -11,16 +11,19 @@ import exp_shared
 import exp_color_rl
 import exp_color_cielab_cc
 import exp_color_random
+import exp_color_human
+
 import Correlation_Clustering
 
-def run(host_name, pipeline='', exp_rl_id='', exp_ccc_id='', exp_random_id=''):
+def run(host_name, pipeline='', exp_rl_id='', exp_ccc_id='', exp_random_id='', exp_human_id=''):
     if pipeline != '':
         return exp_shared.load_exp(pipeline)
 
-    exp = Experiment(exp_name='color_dev',
+    exp = Experiment(exp_name='comb',
                      fixed_params=[('exp_rl_id', exp_rl_id),
                                    ('exp_ccc_id', exp_ccc_id),
-                                   ('exp_random_id', exp_random_id)])
+                                   ('exp_random_id', exp_random_id),
+                                   ('exp_human_id', exp_human_id)])
 
     # RL experiment
     exp_rl = exp_color_rl.run(host_name, pipeline=exp.fixed_params['exp_rl_id'])
@@ -34,6 +37,10 @@ def run(host_name, pipeline='', exp_rl_id='', exp_ccc_id='', exp_random_id=''):
     # random baseline experiment
     exp_random = exp_color_random.run(host_name, pipeline=exp.fixed_params['exp_random_id'])
     exp.set_result('exp_random', value=exp_random)
+
+    # random baseline experiment
+    exp_human = exp_color_human.run(host_name, pipeline=exp.fixed_params['exp_human_id'])
+    exp.set_result('exp_human', value=exp_human)
 
     exp.save()
 
@@ -52,6 +59,7 @@ def cost_plot(exp, measure_id):
     add_line_to_axes(ax, exp.get('exp_rl'), measure_id, group_by_measure_id, line_label='RL')
     add_line_to_axes(ax, exp.get('exp_ccc'), measure_id, group_by_measure_id, line_label='CIELAB CC')
     add_line_to_axes(ax, exp.get('exp_random'), measure_id, group_by_measure_id, line_label='Random')
+    add_line_to_axes(ax, exp.get('exp_human'), measure_id, group_by_measure_id, line_label='WCS languages')
     ax.legend()
     measure_label = measure_id.replace('_', ' ')
     group_by_measure_label = group_by_measure_id.replace('_', ' ')
@@ -78,26 +86,18 @@ def add_line_to_axes(ax, exp_rl, measure_id, group_by_measure_id, line_label='RL
     ax.fill_between(x, cis[:, 0], cis[:, 1], alpha=0.2)
 
 
-def com_plots(exp_rl):
-    viz.plot_with_conf2(exp_rl, 'regier_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
-    viz.plot_with_conf2(exp_rl, 'gibson_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
-    viz.plot_with_conf2(exp_rl, 'wellformedness', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
-
-
 def main(args):
     # Run experiment
     exp = run(args.host_name,
               pipeline=args.pipeline,
               exp_rl_id=args.exp_rl_id,
               exp_ccc_id=args.exp_ccc_id,
-              exp_random_id=args.exp_random_id)
+              exp_random_id=args.exp_random_id,
+              exp_human_id=args.exp_human_id)
 
     # Visualize experiment
     visualize(exp)
 
-    # Todo regier_cost/gibson_cost/wellformedness per term usage including baselines
-
-    #com_plots(exp.get('exp_ccc'))
 
 
 if __name__ == "__main__":
@@ -108,4 +108,6 @@ if __name__ == "__main__":
                         help='Reinforcement learning experiment')
     parser.add_argument('--exp_random_id', type=str, default='',
                         help='random baseline')
+    parser.add_argument('--exp_human_id', type=str, default='',
+                        help='Human baseline')
     main(parser.parse_args())

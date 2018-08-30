@@ -20,7 +20,7 @@ def run(host_name, pipeline=''):
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
     exp = Experiment(exp_name='ccc',
-                     fixed_params=[('iterations', 10),
+                     fixed_params=[('iterations', 100),
                                    ('env', 'wcs')],
                      param_ranges=[('bw_boost', [1, 0.5, 2, 10]),
                                    ('term_usage', range(3, 12))],  # np.linspace(start=0, stop=1, num=1)
