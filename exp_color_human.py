@@ -11,7 +11,7 @@ import agents
 import exp_shared
 
 
-def run(host_name, pipeline=''):
+def run(host_name='local', pipeline=''):
     if pipeline != '':
         return exp_shared.load_exp(pipeline)
 
@@ -42,8 +42,8 @@ def run(host_name, pipeline=''):
 
 
 def visualize(exp):
-    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'avg_over')
-    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'avg_over')
+    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'lang_id')
+    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'lang_id')
 
 
 def main(args):

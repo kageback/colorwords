@@ -15,33 +15,27 @@ import exp_color_human
 
 import Correlation_Clustering
 
-def run(host_name, pipeline='', exp_rl_id='', exp_ccc_id='', exp_random_id='', exp_human_id=''):
+def run(host_name='local', pipeline='', exp_rl_id='', exp_ccc_id='', exp_random_id='', exp_human_id=''):
     if pipeline != '':
         return exp_shared.load_exp(pipeline)
+
+    if exp_rl_id == '':
+        exp_rl_id = exp_color_rl.run(host_name).pipeline_name
+
+    if exp_ccc_id == '':
+        exp_ccc_id = exp_color_cielab_cc.run(host_name).pipeline_name
+
+    if exp_random_id == '':
+        exp_random_id = exp_color_random.run(host_name).pipeline_name
+
+    if exp_human_id == '':
+        exp_human_id = exp_color_human.run(host_name).pipeline_name
 
     exp = Experiment(exp_name='comb',
                      fixed_params=[('exp_rl_id', exp_rl_id),
                                    ('exp_ccc_id', exp_ccc_id),
                                    ('exp_random_id', exp_random_id),
                                    ('exp_human_id', exp_human_id)])
-
-    # RL experiment
-    exp_rl = exp_color_rl.run(host_name, pipeline=exp.fixed_params['exp_rl_id'])
-    exp.set_result('exp_rl', value=exp_rl)
-
-    # cielab correlation clustering experiment
-    exp_ccc = exp_color_cielab_cc.run(host_name, pipeline=exp.fixed_params['exp_ccc_id'])
-    exp.set_result('exp_ccc', value=exp_ccc)
-
-
-    # random baseline experiment
-    exp_random = exp_color_random.run(host_name, pipeline=exp.fixed_params['exp_random_id'])
-    exp.set_result('exp_random', value=exp_random)
-
-    # random baseline experiment
-    exp_human = exp_color_human.run(host_name, pipeline=exp.fixed_params['exp_human_id'])
-    exp.set_result('exp_human', value=exp_human)
-
     exp.save()
 
     return exp
@@ -56,16 +50,16 @@ def visualize(exp):
 def cost_plot(exp, measure_id):
     group_by_measure_id = 'term_usage'
     fig, ax = plt.subplots()
-    add_line_to_axes(ax, exp.get('exp_rl'), measure_id, group_by_measure_id, line_label='RL')
-    add_line_to_axes(ax, exp.get('exp_ccc'), measure_id, group_by_measure_id, line_label='CIELAB CC')
-    add_line_to_axes(ax, exp.get('exp_random'), measure_id, group_by_measure_id, line_label='Random')
-    add_line_to_axes(ax, exp.get('exp_human'), measure_id, group_by_measure_id, line_label='WCS languages')
+    add_line_to_axes(ax, exp_color_rl.run(pipeline=exp.fixed_params['exp_rl_id']), measure_id, group_by_measure_id, line_label='RL')
+    add_line_to_axes(ax, exp_color_cielab_cc.run(pipeline=exp.fixed_params['exp_ccc_id']), measure_id, group_by_measure_id, line_label='CIELAB CC')
+    add_line_to_axes(ax, exp_color_random.run(pipeline=exp.fixed_params['exp_random_id']), measure_id, group_by_measure_id, line_label='Random')
+    add_line_to_axes(ax, exp_color_human.run(pipeline=exp.fixed_params['exp_human_id']), measure_id, group_by_measure_id, line_label='WCS languages')
     ax.legend()
     measure_label = measure_id.replace('_', ' ')
     group_by_measure_label = group_by_measure_id.replace('_', ' ')
     plt.ylabel(measure_label)
     plt.xlabel(group_by_measure_label)
-    plt.xlim([3,11])
+    plt.xlim([3, 11])
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + group_by_measure_id + '.png'
     plt.savefig(fig_name)
 

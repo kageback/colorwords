@@ -11,7 +11,7 @@ import agents
 import exp_shared
 
 
-def run(host_name, pipeline=''):
+def run(host_name='local', pipeline=''):
     if pipeline != '':
         return exp_shared.load_exp(pipeline)
 
