@@ -30,9 +30,9 @@ def run(host_name='local', pipeline=''):
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
                                    ('msg_dim', 15)],
-                     param_ranges=[('avg_over', range(25)),  # 50
-                                   ('perception_noise', [0, 10, 20, 40, 80, 160, 320]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
-                                   ('com_noise', [0.5])],  # np.linspace(start=0, stop=1, num=1)
+                     param_ranges=[('avg_over', range(5)),  # 50
+                                   ('perception_noise', [0]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
+                                   ('com_noise', [0, 0.1, 0.3, 0.5, 0.8, 1])],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -81,6 +81,13 @@ def run(host_name='local', pipeline=''):
 
 def visualize(exp):
     print('Analyse results')
+
+    # term usage across different level of noise
+    viz.plot_with_conf(exp, 'term_usage', 'com_noise', 'perception_noise', x_label='com $\sigma^2$', z_label='perception $\sigma^2$')
+    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise', x_label='perception $\sigma^2$', z_label='com $\sigma^2$', )
+    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp, 'gibson_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
 
     term_usage_to_analyse = list(range(3, 12))
     iter = 10
@@ -154,15 +161,6 @@ def visualize(exp):
             for i in range(len(term_usage_to_analyse))
         ]))
 
-    # term usage across different level of noise
-    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise',
-                       x_label='perception $\sigma^2$',
-                       z_label='com $\sigma^2$', )
-    viz.hist(exp, 'term_usage', 'perception_noise')
-
-    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
-    viz.plot_with_conf2(exp, 'gibson_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
-    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
 
 
 def main(args):
