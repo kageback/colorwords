@@ -51,6 +51,8 @@ def plot_with_std(exp, measure_id, x_id, z_id, measure_label=None, x_label=None,
 def hist(exp, measure_id, x_id):
     dists = exp.reshape(measure_id, [x_id])
     x_vals = exp.param_ranges[x_id]
+    np.savetxt(exp.pipeline_path + 'dists.txt', dists, delimiter=',', fmt='%u')
+    np.savetxt(exp.pipeline_path + 'x_vals.txt', np.array(x_vals), delimiter=',', fmt='%u')
     for i in range(len(x_vals)):
         plt.figure()
         plt.hist(dists[i])

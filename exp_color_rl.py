@@ -11,7 +11,7 @@ import agents
 import exp_shared
 
 
-def run(host_name='local', pipeline=''):
+def run(host_name, pipeline=''):
     if pipeline != '':
         return exp_shared.load_exp(pipeline)
 
@@ -21,16 +21,16 @@ def run(host_name='local', pipeline=''):
                recursive=True)
     exp = Experiment(exp_name='rl',
                      fixed_params=[('loss_type', 'REINFORCE'),
-                                   ('bw_boost', 1.5),
+                                   ('bw_boost', 1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 20000),  # 10000
+                                   ('max_epochs', 200),  # 20000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
                                    ('msg_dim', 15)],
-                     param_ranges=[('avg_over', range(25)),  # 50
+                     param_ranges=[('avg_over', range(1)),  # 25
                                    ('perception_noise', [0, 10, 20, 40, 80, 160, 320]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
                                    ('com_noise', [0.5])],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
@@ -131,7 +131,7 @@ def visualize(exp):
 
 
     # print perception noise influence table
-    exp.log.info('\n'.join(
+    exp.log('\n'.join(
         ['Terms used & Mean rand index for all & Mean rand index within noise group \\\\ \\thickhline'] +
         ['{:2d} & {:.3f} & {:.3f} \\\\ \\hline'.format(
             term_usage_to_analyse[i],
@@ -141,7 +141,7 @@ def visualize(exp):
         ]))
 
     #print human vs machine
-    exp.log.info('\n'.join(
+    exp.log('\n'.join(
         ['Terms used & Human mean rand index for all & Agents mean rand index & Cross human agent rand index & cross agent consensus to human \\\\ \\thickhline'] +
         ['{:2d} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f}\\\\ \\hline'.format(
             term_usage_to_analyse[i],
