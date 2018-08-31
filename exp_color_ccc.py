@@ -68,6 +68,9 @@ def visualize(exp):
     viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'bw_boost')
     viz.plot_with_conf2(exp, 'term_usage', 'term_usage', 'bw_boost')
 
+    e = com_enviroments.make('wcs')
+    for t, maps in zip(exp.param_ranges['term_usage'], exp.reshape('language_map', as_function_of_axes=['term_usage'])):
+        e.plot_with_colors(maps[0,:], save_to_path=exp.pipeline_path + 'ccc_map-' + str(t) + '_terms.png')
 
 def main(args):
     # Run experiment

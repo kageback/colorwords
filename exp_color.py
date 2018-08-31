@@ -9,7 +9,7 @@ import com_enviroments
 import exp_shared
 
 import exp_color_rl
-import exp_color_cielab_cc
+import exp_color_ccc
 import exp_color_random
 import exp_color_human
 
@@ -23,7 +23,7 @@ def run(host_name='local', pipeline='', exp_rl_id='', exp_ccc_id='', exp_random_
         exp_rl_id = exp_color_rl.run(host_name).pipeline_name
 
     if exp_ccc_id == '':
-        exp_ccc_id = exp_color_cielab_cc.run(host_name).pipeline_name
+        exp_ccc_id = exp_color_ccc.run(host_name).pipeline_name
 
     if exp_random_id == '':
         exp_random_id = exp_color_random.run(host_name).pipeline_name
@@ -51,7 +51,7 @@ def cost_plot(exp, measure_id):
     group_by_measure_id = 'term_usage'
     fig, ax = plt.subplots()
     add_line_to_axes(ax, exp_color_rl.run(pipeline=exp.fixed_params['exp_rl_id']), measure_id, group_by_measure_id, line_label='RL')
-    add_line_to_axes(ax, exp_color_cielab_cc.run(pipeline=exp.fixed_params['exp_ccc_id']), measure_id, group_by_measure_id, line_label='CIELAB CC')
+    add_line_to_axes(ax, exp_color_ccc.run(pipeline=exp.fixed_params['exp_ccc_id']), measure_id, group_by_measure_id, line_label='CIELAB CC')
     add_line_to_axes(ax, exp_color_random.run(pipeline=exp.fixed_params['exp_random_id']), measure_id, group_by_measure_id, line_label='Random')
     add_line_to_axes(ax, exp_color_human.run(pipeline=exp.fixed_params['exp_human_id']), measure_id, group_by_measure_id, line_label='WCS languages')
     ax.legend()
