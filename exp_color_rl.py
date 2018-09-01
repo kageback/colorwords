@@ -30,9 +30,9 @@ def run(host_name='local', pipeline=''):
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
                                    ('msg_dim', 15)],
-                     param_ranges=[('avg_over', range(10)),  # 50
-                                   ('perception_noise', [0, 25, 50, 100]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
-                                   ('com_noise', [0, 0.1, 0.3, 0.5, 0.8, 1])],  # np.linspace(start=0, stop=1, num=1)
+                     param_ranges=[('avg_over', range(30)),  # 50
+                                   ('perception_noise', [0, 5, 25, 50, 100]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
+                                   ('com_noise', [0, 0.1, 0.3, 0.5, 1])],  # np.linspace(start=0, stop=1, num=1)
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
