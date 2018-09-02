@@ -45,6 +45,15 @@ def visualize(exp):
     viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'lang_id')
     viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'lang_id')
 
+    maps = exp.reshape('language_map')
+    term_usage = exp.reshape('term_usage')
+    iterations = 10
+    e = com_enviroments.make('wcs')
+    for t in np.unique(term_usage):
+        if len(maps[term_usage == t]) >= 1:
+            consensus_map = Correlation_Clustering.compute_consensus_map(maps[term_usage == t], k=t, iter=iterations)
+            e.plot_with_colors(consensus_map,
+                               save_to_path=exp.pipeline_path + 'human_consensus_map-' + str(t) + '_terms.png')
 
 def main(args):
     # Run experiment
