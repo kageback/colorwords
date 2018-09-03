@@ -16,12 +16,14 @@ class BaseGame:
     def __init__(self,
                  max_epochs=1000,
                  batch_size=100,
-                 print_interval=1000):
+                 print_interval=1000,
+		 evaluate_interval=0):
         super().__init__()
 
         self.max_epochs = max_epochs
         self.batch_size = batch_size
         self.print_interval = print_interval
+        self.evaluate_interval = evaluate_interval
 
         self.training_mode = True
 
@@ -47,10 +49,16 @@ class BaseGame:
             if self.print_interval != 0 and ((i+1) % self.print_interval == 0):
                 self.print_status(loss)
 
+            if self.evaluate_interval != 0 and ((i+1) % self.evaluate_interval == 0):
+                self.evaluate()
+
         return agent_a.cpu()
 
     def communication_channel(self, env, agent_a, agent_b, color_codes, colors):
         pass
+    
+    def evaluate(self):
+        print('evaluate this abstract shit')
 
     def agent_language_map(self, env, a):
         V = {}
@@ -206,9 +214,10 @@ class NoisyChannelGame(BaseGame):
                  perception_noise=0,
                  batch_size=100,
                  print_interval=1000,
+                 evaluate_interval=0,
                  perception_dim=3,
                  loss_type='CrossEntropyLoss'):
-        super().__init__(max_epochs, batch_size, print_interval)
+        super().__init__(max_epochs, batch_size, print_interval, evaluate_interval)
         self.reward_func = reward_func
         self.bw_boost = bw_boost
         self.com_noise = com_noise
