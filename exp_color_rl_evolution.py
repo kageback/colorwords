@@ -23,16 +23,16 @@ def run(host_name='local', pipeline=''):
                      fixed_params=[('loss_type', 'REINFORCE'),
                                    ('bw_boost', 1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 2000),  # 10000
+                                   ('max_epochs', 10000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
-                                   ('evaluate_interval', 100),
+                                   ('evaluate_interval', 1000),
                                    ('msg_dim', 15),
                                    ('com_noise', 0.1),
-                                   ('perception_noise', 50)], #[0, 10, 20, 30, 40, 50, 80, 120, 160, 320]
+                                   ('perception_noise', 40)], #[0, 10, 20, 30, 40, 50, 80, 120, 160, 320]
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -53,7 +53,7 @@ def run(host_name='local', pipeline=''):
                                      perception_noise=exp.fixed_params['perception_noise'],
                                      batch_size=exp.fixed_params['batch_size'],
                                      print_interval=exp.fixed_params['print_interval'],
-				     evaluate_interval=exp.fixed_params['evaluate_interval'],
+                                     evaluate_interval=exp.fixed_params['evaluate_interval'],
                                      loss_type=exp.fixed_params['loss_type'],
                                      bw_boost=exp.fixed_params['bw_boost'])
 

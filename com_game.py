@@ -6,6 +6,7 @@ from torch import optim
 from torch.distributions import Categorical
 from torch.distributions import Normal
 
+import evaluate
 import torchHelpers as th
 
 
@@ -50,15 +51,25 @@ class BaseGame:
                 self.print_status(loss)
 
             if self.evaluate_interval != 0 and ((i+1) % self.evaluate_interval == 0):
-                self.evaluate()
+                self.evaluate(env, agent_a)
 
         return agent_a.cpu()
 
     def communication_channel(self, env, agent_a, agent_b, color_codes, colors):
         pass
     
-    def evaluate(self):
-        print('evaluate this abstract shit')
+    def evaluate(self, env, agent_a):
+        V = self.agent_language_map(env, agent_a)
+        gibson_cost = self.compute_gibson_cost(env, a=agent_a)
+        regier_cost = evaluate.communication_cost_regier(env, V=V)
+        wellformedness = evaluate.wellformedness(env, V=V)
+        term_usage = evaluate.compute_term_usage(V=V)
+        print('terms = {:2d}, gib = {:.3f}, reg = {:.3f}, well = {:.3f}'.format(term_usage[0],
+                                                                                gibson_cost[1],
+                                                                                regier_cost[0],
+                                                                                wellformedness[0]))
+        env.plot_with_colors(V, save_to_path='evo_map_{:2d} .png'.format(term_usage[0]))
+
 
     def agent_language_map(self, env, a):
         V = {}
