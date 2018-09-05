@@ -29,7 +29,7 @@ class WCS_Enviroment(BaseEnviroment):
         # http://www1.icsi.berkeley.edu/wcs/data/20041016/txt/dict.txt
 
         self.color_chips = pd.read_csv(wcs_path + 'cnum-vhcm-lab-new.txt', sep='\t')
-        self.cielab_map = self.color_chips[['L*', 'a*', 'b*']].values
+        self.cielab_map = th.float_var(self.color_chips[['L*', 'a*', 'b*']].values)
 
         self.term = pd.read_csv(wcs_path + 'term.txt', sep='\t', names=['lang_num', 'spkr_num', 'chip_num', 'term_abrev'])
         self.dict = pd.read_csv(wcs_path + 'dict.txt', sep='\t', skiprows=[0], names=['lang_num', 'term_num', 'term', 'term_abrev'])
@@ -109,8 +109,8 @@ class WCS_Enviroment(BaseEnviroment):
 
     def sim_index(self, chip_index_x, chip_index_y, bw_boost=1):
         # sim func used for computing the evaluation metrics
-        color_x = th.float_var(self.cielab_map[chip_index_x]).unsqueeze(0)
-        color_y = th.float_var(self.cielab_map[chip_index_y]).unsqueeze(0)
+        color_x = self.cielab_map[chip_index_x].unsqueeze(0)
+        color_y = self.cielab_map[chip_index_y].unsqueeze(0)
         return self.regier_reward(color_x, color_y, bw_boost=bw_boost)
 
     # plotting
@@ -178,7 +178,7 @@ class WCS_Enviroment(BaseEnviroment):
         from colormath.color_conversions import convert_color
         lab = LabColor(c[0], c[1], c[2])
         rgb = convert_color(lab, sRGBColor)
-        return np.array(rgb.get_value_tuple())
+        return np.array([rgb.clamped_rgb_r,rgb.clamped_rgb_g, rgb.clamped_rgb_b])
 
     # Printing
     def print_color_map(self, f=lambda t: str(t['#cnum'].values[0]), pad=3):

@@ -75,7 +75,7 @@ class BaseGame:
         V = {}
         a = th.cuda(a)
         perception_indices, perceptions = env.full_batch()
-        perceptions = th.float_var(perceptions)
+        #perceptions = th.float_var(perceptions)
 
         probs = a(perception=perceptions)
         _, terms = probs.max(1)
@@ -156,7 +156,7 @@ class BaseGame:
     # other metrics
     def compute_gibson_cost(self, env, a):
         _, perceptions = env.full_batch()
-        perceptions = th.float_var(perceptions, False)
+        perceptions = perceptions.cpu()
         all_terms = th.long_var(range(a.msg_dim), False)
 
         p_WC = F.softmax(a(perception=perceptions), dim=1).t().data.numpy()
@@ -264,7 +264,7 @@ class NoisyChannelGame(BaseGame):
 
         #compute reward
         if self.reward_func == 'regier_reward':
-            CIELAB_guess = th.float_var(env.chip_index2CIELAB(guess.data))
+            CIELAB_guess = env.chip_index2CIELAB(guess.data)
             reward = env.regier_reward(perception, CIELAB_guess, bw_boost=self.bw_boost)
         elif self.reward_func == 'abs_dist':
             diff = torch.abs(target - guess.unsqueeze(dim=1))

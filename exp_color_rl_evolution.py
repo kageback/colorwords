@@ -1,10 +1,10 @@
-import numpy as np
+#import numpy as np
 
-import Correlation_Clustering
+#import Correlation_Clustering
 import gridengine as sge
 import com_game
-import viz
-import evaluate
+#import viz
+#import evaluate
 from gridengine.pipeline import Experiment
 import com_enviroments
 import agents
@@ -56,6 +56,7 @@ def run(host_name='local', pipeline=''):
                                      evaluate_interval=exp.fixed_params['evaluate_interval'],
                                      loss_type=exp.fixed_params['loss_type'],
                                      bw_boost=exp.fixed_params['bw_boost'])
+
 
     game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
 
