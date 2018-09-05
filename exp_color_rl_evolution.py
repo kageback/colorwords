@@ -55,7 +55,8 @@ def run(host_name='local', pipeline=''):
                                      print_interval=exp.fixed_params['print_interval'],
                                      evaluate_interval=exp.fixed_params['evaluate_interval'],
                                      loss_type=exp.fixed_params['loss_type'],
-                                     bw_boost=exp.fixed_params['bw_boost'])
+                                     bw_boost=exp.fixed_params['bw_boost'],
+                                     log_path=exp.pipeline_path)
 
 
     game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
