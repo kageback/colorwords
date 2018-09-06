@@ -2,8 +2,8 @@
 
 #import Correlation_Clustering
 import gridengine as sge
+import viz
 import com_game
-#import viz
 #import evaluate
 from gridengine.pipeline import Experiment
 import com_enviroments
@@ -23,13 +23,13 @@ def run(host_name='local', pipeline=''):
                      fixed_params=[('loss_type', 'REINFORCE'),
                                    ('bw_boost', 1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 10000),  # 10000
+                                   ('max_epochs', 50000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
-                                   ('evaluate_interval', 1000),
+                                   ('evaluate_interval', 100),
                                    ('msg_dim', 15),
                                    ('com_noise', 0.1),
                                    ('perception_noise', 40)], #[0, 10, 20, 30, 40, 50, 80, 120, 160, 320]

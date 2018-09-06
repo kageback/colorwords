@@ -9,6 +9,8 @@ from torch.distributions import Normal
 import evaluate
 import torchHelpers as th
 
+import matplotlib.pyplot as plt
+
 
 # immutable(ish) game classes. Not meant to carry state between executions since each execution is based on the object
 # created in the run script and not updated with new state after running on the cluster.
@@ -28,6 +30,11 @@ class BaseGame:
         self.evaluate_interval = evaluate_interval
         self.log_path = log_path
         self.training_mode = True
+
+        self.gibson_cost = []
+        self.regier_cost = []
+        self.wellformedness = []
+        self.term_usage = []
 
     def play(self, env, agent_a, agent_b):
         agent_a = th.cuda(agent_a)
@@ -58,18 +65,29 @@ class BaseGame:
 
     def communication_channel(self, env, agent_a, agent_b, color_codes, colors):
         pass
-    
+
     def evaluate(self, env, agent_a):
         V = self.agent_language_map(env, agent_a)
-        gibson_cost = self.compute_gibson_cost(env, a=agent_a)
-        regier_cost = evaluate.communication_cost_regier(env, V=V)
-        wellformedness = evaluate.wellformedness(env, V=V)
-        term_usage = evaluate.compute_term_usage(V=V)
-        print('terms = {:2d}, gib = {:.3f}, reg = {:.3f}, well = {:.3f}'.format(term_usage[0],
-                                                                                gibson_cost[1],
-                                                                                regier_cost[0],
-                                                                                wellformedness[0]))
-        env.plot_with_colors(V, save_to_path='{}evo_map_{:2d}.png'.format(self.log_path, term_usage[0]))
+        self.gibson_cost += [self.compute_gibson_cost(env, a=agent_a)[1]]
+        self.regier_cost += [evaluate.communication_cost_regier(env, V=V)[0]]
+        self.wellformedness += [evaluate.wellformedness(env, V=V)[0]]
+        self.term_usage += [evaluate.compute_term_usage(V=V)[0]]
+        print('terms = {:2d}, gib = {:.3f}, reg = {:.3f}, well = {:.3f}'.format(self.term_usage[-1],
+                                                                                self.gibson_cost[-1],
+                                                                                self.regier_cost[-1],
+                                                                                self.wellformedness[-1]))
+        env.plot_with_colors(V, save_to_path='{}evo_map-{}_terms.png'.format(self.log_path, self.term_usage[-1]))
+
+        plt.plot(self.gibson_cost)
+        plt.savefig('{}gibson_cost_evo.png'.format(self.log_path))
+        plt.plot(self.regier_cost)
+        plt.savefig('{}regier_cost_evo.png'.format(self.log_path))
+        plt.plot(self.wellformedness)
+        plt.savefig('{}wellformedness_evo.png'.format(self.log_path))
+        plt.plot(self.term_usage)
+        plt.savefig('{}term_usage_evo.png'.format(self.log_path))
+
+
 
 
     def agent_language_map(self, env, a):
