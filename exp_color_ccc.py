@@ -49,7 +49,7 @@ def run(host_name='local', pipeline=''):
         #print('set {} actual {}'.format(params_v[exp.axes['term_usage']], exp.run(evaluate.compute_term_usage, V=consensus).result().get()))
 
         exp.set_result('language_map', params_i, consensus)
-        exp.set_result('regier_cost', params_i, exp.run(evaluate.communication_cost_regier, wcs, V=consensus).result())
+        exp.set_result('regier_cost', params_i, exp.run(evaluate.regier2, wcs, map=consensus).result())
         exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, wcs, V=consensus).result())
         exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=consensus).result())
 

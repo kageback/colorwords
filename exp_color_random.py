@@ -32,7 +32,7 @@ def run(host_name='local', pipeline=''):
         map = np.array([np.random.randint(params_v[exp.axes['term_usage']]) for n in range(N)])
 
         exp.set_result('language_map', params_i, map)
-        exp.set_result('regier_cost', params_i, exp.run(evaluate.communication_cost_regier, wcs, V=map).result())
+        exp.set_result('regier_cost', params_i, exp.run(evaluate.regier2, wcs, map=map).result())
         exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, wcs, V=map).result())
         exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=map).result())
 

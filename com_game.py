@@ -78,12 +78,16 @@ class BaseGame:
                                                                                 self.wellformedness[-1]))
         env.plot_with_colors(V, save_to_path='{}evo_map-{}_terms.png'.format(self.log_path, self.term_usage[-1]))
 
+        plt.figure()
         plt.plot(self.gibson_cost)
         plt.savefig('{}gibson_cost_evo.png'.format(self.log_path))
+        plt.figure()
         plt.plot(self.regier_cost)
         plt.savefig('{}regier_cost_evo.png'.format(self.log_path))
+        plt.figure()
         plt.plot(self.wellformedness)
         plt.savefig('{}wellformedness_evo.png'.format(self.log_path))
+        plt.figure()
         plt.plot(self.term_usage)
         plt.savefig('{}term_usage_evo.png'.format(self.log_path))
 

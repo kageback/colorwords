@@ -18,6 +18,26 @@ def compute_cielab_map(wcs, k, iterations=10, bw_boost=1):
     return consensus
 
 
+def regier2(env, map):
+    if type(map) == list:
+        map = np.array(map)
+
+    env_dim = map.shape[0]
+    s = np.zeros(env_dim)
+    l = np.zeros(env_dim)
+
+    for t in range(env_dim):
+        partition = np.argwhere(map == map[t])[:, 0]
+        #partition = partition[partition != t]
+        for i in range(env_dim):
+            s[i] = env.regier_reward(env.cielab_map[i], env.cielab_map[partition]).sum()
+        l[t] = s[t] / s.sum()
+
+    #l = l / l.sum()
+
+    return -np.log2(l).sum() / env_dim
+
+
 # Language map based metrics
 def communication_cost_regier(env, V, sum_over_whole_s=False, norm_over_s=False, weight_by_size=False):
     s = {}
