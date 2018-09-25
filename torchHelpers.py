@@ -12,7 +12,7 @@ def float_var(tensor, use_cuda=None):
 
 def cuda(var, use_cuda=None):
     if use_cuda is None:
-        use_cuda = torch.cuda.is_available()
+        use_cuda = False #torch.cuda.is_available()
 
     if use_cuda:
         return var.cuda()

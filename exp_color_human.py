@@ -30,13 +30,14 @@ def run(host_name='local', pipeline=''):
         print('Scheduled %d experiments out of %d' % (exp_i, len(list(exp))))
         exp_i += 1
 
-        map = np.array(wcs.human_mode_maps[params_v[exp.axes['lang_id']]])
+        map = wcs.human_mode_maps[params_v[exp.axes['lang_id']]]
 
         exp.set_result('language_map', params_i, map)
+        exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=map).result())
         exp.set_result('regier_cost', params_i, exp.run(evaluate.regier2, wcs, map=map).result())
         #exp.set_result('regier_cost', params_i, exp.run(evaluate.communication_cost_regier, wcs, V=map, sum_over_whole_s=True).result())
         exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, wcs, V=map).result())
-        exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=map).result())
+
 
     exp.save()
 

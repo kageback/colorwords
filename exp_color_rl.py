@@ -29,9 +29,9 @@ def run(host_name='local', pipeline=''):
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
-                                   ('msg_dim', 15)],
+                                   ('msg_dim', 50)],
                      param_ranges=[('avg_over', range(25)),  # 50
-                                   ('perception_noise', [40]), #[0, 10, 20, 30, 40, 50,  80, 120, 160, 320]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
+                                   ('perception_noise', [40, 50,  80, 120, 160, 320]), #[0, 10, 20, 30, 40, 50,  80, 120, 160, 320]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
                                    ('com_noise', [0.1])],  # [0, 0.1, 0.3, 0.5, 1]
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -63,8 +63,8 @@ def run(host_name='local', pipeline=''):
         game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
 
         V = exp.run(game.agent_language_map, env, a=game_outcome).result()
-
         exp.set_result('agent_language_map', params_i, V)
+
         exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env, a=game_outcome).result(1))
         exp.set_result('regier_cost', params_i, exp.run(evaluate.regier2, env, map=V).result())
         exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, env, V=V).result())

@@ -57,16 +57,35 @@ class WCS_Enviroment(BaseEnviroment):
                 m = [l.loc[l.chip_num == self.color_chips.loc[chip_i]['#cnum']]['term_num'].mode().values[0] for
                      chip_i in range(330)]
                 human_mode_maps[lang_num] = np.array(m)
-                self.plot_with_colors(np.array(m), wcs_path + 'mode_maps/human_lang_' + str(lang_num) + '.png')
+                human_mode_maps[lang_num] = self.regier_regularize_mode_map(human_mode_maps[lang_num])
+                self.plot_with_colors(human_mode_maps[lang_num], wcs_path + 'mode_maps/human_lang_' + str(lang_num) + '.png')
             else:
                 print(
                     'Skipping lang {} due to incomplete data (experiment only consisting of {}/330 chips).'.format(
                         lang_num,
                         np.unique(l.chip_num.values).shape[0]))
+
+
+
         pickle.dump(human_mode_maps, open(fname, "wb"))
         print('Done computing mode maps')
         return human_mode_maps
 
+    def regier_regularize_mode_map(self, m, threshold=10):
+        res = m
+
+        for p in np.unique(m):
+            if m[m == p].shape[0] < threshold:
+                m[m == p] = -1
+
+        i_valid = np.argwhere(m != -1)
+        i_invalid = np.argwhere(m == -1)
+
+        for i in i_invalid:
+            close = self.regier_reward(self.cielab_map[i], self.cielab_map[i_valid][:, 0])
+            res[i] = m[i_valid[np.argmax(close)]]
+
+        return res
 
     def get_data(self, url, local_name):
         if not os.path.exists(local_name):

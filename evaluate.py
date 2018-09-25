@@ -67,10 +67,6 @@ def communication_cost_regier(env, V, sum_over_whole_s=False, norm_over_s=False,
         for i in l.keys():
             l[i] /= l_z
 
-    # debug code to check it l sums to one
-    l_z = 0
-    for x in l.values():
-        l_z += x
 
     E = 0
     for t in range(len(V)):
@@ -82,31 +78,31 @@ def communication_cost_regier(env, V, sum_over_whole_s=False, norm_over_s=False,
 
 def wellformedness(env, V):
     Sw = 0
-    for i in range(len(V)):
-        for j in range(len(V)):
-            if V[i] == V[j]:
-                Sw += env.sim_index(i, j)
     Da = 0
     for i in range(len(V)):
-        for j in range(len(V)):
-            if V[i] != V[j]:
+        for j in range(i+1, len(V)):
+            if V[i] == V[j]:
+                Sw += env.sim_index(i, j)
+            else:
                 Da += 1 - env.sim_index(i, j)
+
     W = Sw + Da
     return W
 
 
 def compute_term_usage(V):
-    def inc_dict(dict, key, increment):
-        if key in dict.keys():
-            dict[key] += increment
-        else:
-            dict[key] = increment
-
-    cat_sizes = {}
-    for v in V:
-        inc_dict(cat_sizes, v, 1)
-    n = len(cat_sizes)
-    return n, cat_sizes
+    return np.unique(V).shape
+    # def inc_dict(dict, key, increment):
+    #     if key in dict.keys():
+    #         dict[key] += increment
+    #     else:
+    #         dict[key] = increment
+    #
+    # cat_sizes = {}
+    # for v in V:
+    #     inc_dict(cat_sizes, v, 1)
+    # n = len(cat_sizes)
+    # return n, cat_sizes
 
 
 def mean_rand_index(ce_a, ce_b=None):
