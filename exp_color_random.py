@@ -32,14 +32,20 @@ def run(host_name='local', pipeline=''):
         map = np.array([np.random.randint(params_v[exp.axes['term_usage']]) for n in range(N)])
 
         exp.set_result('language_map', params_i, map)
-        exp.set_result('regier_cost', params_i, exp.run(evaluate.regier2, wcs, map=map).result())
-        exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, wcs, V=map).result())
-        exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=map).result())
-
-    exp.save()
 
     return exp
 
+def analyse(exp):
+    wcs = com_enviroments.make(exp.fixed_params['env'])
+    i = 1
+    for (params_i, params_v) in exp:
+        V = exp.get_result('language_map', params_i).get()
+        exp.set_result('regier_cost', params_i, exp.run(evaluate.regier2, wcs, map=V).result())
+        exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, wcs, V=V).result())
+        exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=V).result())
+
+        print('Scheduled analysis of %d experiments out of %d' % (i, len(list(exp))))
+        i += 1
 
 def visualize(exp):
     viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'avg_over')
@@ -49,7 +55,8 @@ def visualize(exp):
 def main(args):
     # Run experiment
     exp = run(args.host_name, args.pipeline)
-
+    analyse(exp)
+    exp.save()
     visualize(exp)
 
 if __name__ == "__main__":

@@ -65,18 +65,20 @@ def run(host_name='local', pipeline=''):
         exp.set_result('agent_language_map', params_i, exp.run(game.agent_language_map, env, a=game_outcome).result())
         exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env, a=game_outcome).result(1))
 
-    exp.save()
-
-
     return exp
+
 
 def analyse(exp):
     env = exp.run(com_enviroments.make, exp.fixed_params['env']).result()
+    i = 0
     for (params_i, params_v) in exp:
         V = exp.get_result('agent_language_map', params_i)
         exp.set_result('regier_cost', params_i, exp.run(evaluate.regier2, env, map=V).result())
         exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, env, V=V).result())
         exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=V).result())
+
+        print('Scheduled analysis of %d experiments out of %d' % (i, len(list(exp))))
+        i += 1
 
 def visualize(exp):
     print('Analyse results')
@@ -87,8 +89,6 @@ def visualize(exp):
     viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
     viz.plot_with_conf2(exp, 'gibson_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
     viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
-
-
 
 
 def print_tables(exp):
@@ -170,16 +170,18 @@ def main(args):
     # evaluate results
     analyse(exp)
 
-    print("\nAll tasks queued to clusters")
 
+    print("\nAll tasks queued to clusters")
+    exp.save()
     # wait for all tasks to complete and sync back result
     exp.wait(retry_interval=5)
     exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
+
     # Visualize experiment
     visualize(exp)
 
-    print_tables(exp)
+    #print_tables(exp)
 
 
 if __name__ == "__main__":

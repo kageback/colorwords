@@ -49,19 +49,23 @@ def run(host_name='local', pipeline=''):
         #print('set {} actual {}'.format(params_v[exp.axes['term_usage']], exp.run(evaluate.compute_term_usage, V=consensus).result().get()))
 
         exp.set_result('language_map', params_i, consensus)
+
+
+
+    return exp
+
+
+def analyse(exp):
+    wcs = com_enviroments.make(exp.fixed_params['env'])
+    i = 1
+    for (params_i, params_v) in exp:
+        consensus = exp.get_result('language_map', params_i)
         exp.set_result('regier_cost', params_i, exp.run(evaluate.regier2, wcs, map=consensus).result())
         exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, wcs, V=consensus).result())
         exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=consensus).result())
 
-    exp.save()
-    print("\nAll tasks queued to clusters")
-
-    # wait for all tasks to complete
-    exp.wait(retry_interval=5)
-    queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
-
-    return exp
-
+        print('Scheduled analysis of %d experiments out of %d' % (i, len(list(exp))))
+        i += 1
 
 def visualize(exp):
     viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'bw_boost')
@@ -75,6 +79,16 @@ def visualize(exp):
 def main(args):
     # Run experiment
     exp = run(args.host_name, args.pipeline)
+
+    # analyse results
+    analyse(exp)
+
+    exp.save()
+    print("\nAll tasks queued to clusters")
+
+    # wait for all tasks to complete
+    exp.wait(retry_interval=5)
+    exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
     visualize(exp)
 
