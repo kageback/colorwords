@@ -23,7 +23,7 @@ def run(host_name='local', pipeline=''):
                      fixed_params=[('loss_type', 'REINFORCE'),
                                    ('bw_boost', 1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 20000),  # 10000
+                                   ('max_epochs', 10000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
@@ -31,8 +31,8 @@ def run(host_name='local', pipeline=''):
                                    ('print_interval', 1000),
                                    ('msg_dim', 50)],
                      param_ranges=[('avg_over', range(25)),  # 50
-                                   ('perception_noise', [40, 50,  80, 120, 160, 320]), #[0, 10, 20, 30, 40, 50,  80, 120, 160, 320]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
-                                   ('com_noise', [0.1])],  # [0, 0.1, 0.3, 0.5, 1]
+                                   ('perception_noise', [32]), #[0, 10, 20, 30, 40, 50,  80, 120, 160, 320]),  # [0, 25, 50, 100],     #[0, 10, 20, 40, 80, 160, 320]
+                                   ('com_noise', np.logspace(-3, 6, num=10, base=2))],  # [0, 0.1, 0.3, 0.5, 1] [0, 0.5, 3, 10, 20, 50]
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -81,9 +81,12 @@ def analyse(exp):
         i += 1
 
 def visualize(exp):
-    print('Analyse results')
+    print('Visualize results')
 
     # term usage across different level of noise
+    viz.plot_with_conf(exp, 'term_usage', 'com_noise', x_label='com $\sigma^2$')
+    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', x_label='perception $\sigma^2$')
+
     viz.plot_lines_with_conf(exp, 'term_usage', 'com_noise', 'perception_noise', x_label='com $\sigma^2$', z_label='perception $\sigma^2$')
     viz.plot_lines_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise', x_label='perception $\sigma^2$', z_label='com $\sigma^2$', )
     viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
@@ -173,6 +176,7 @@ def main(args):
 
     print("\nAll tasks queued to clusters")
     exp.save()
+
     # wait for all tasks to complete and sync back result
     exp.wait(retry_interval=5)
     exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)

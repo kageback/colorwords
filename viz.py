@@ -59,6 +59,25 @@ def hist(exp, measure_id, x_id):
         fig_name = exp.pipeline_path + '/fig_hist_' + measure_id + '_vs_' + x_id + '-' + str(x_vals[i]) + '.png'
         plt.savefig(fig_name)
 
+def plot_with_conf(exp, measure_id, x_id, measure_label=None, x_label=None, fmt='-'):
+    if measure_label is None:
+        measure_label = measure_id.replace('_', ' ')
+    if x_label is None:
+        x_label = x_id.replace('_', ' ')
+
+    mean, ci = exp.estimate_mean(measure_id, as_function_of_axes=[x_id])
+
+    x = exp.param_ranges[x_id]
+
+    fig, ax = plt.subplots()
+    ax.plot(x, mean,  fmt)
+    ax.fill_between(x, ci[0], ci[1], alpha=0.2)
+
+    plt.ylabel(measure_label)
+    plt.xlabel(x_label)
+
+    fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + x_id +'.png'
+    plt.savefig(fig_name)
 
 def plot_lines_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None, fmt='-'):
     if measure_label is None:
