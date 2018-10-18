@@ -84,8 +84,8 @@ def visualize(exp):
     print('Analyse results')
 
     # term usage across different level of noise
-    viz.plot_with_conf(exp, 'term_usage', 'com_noise', 'perception_noise', x_label='com $\sigma^2$', z_label='perception $\sigma^2$')
-    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise', x_label='perception $\sigma^2$', z_label='com $\sigma^2$', )
+    viz.plot_lines_with_conf(exp, 'term_usage', 'com_noise', 'perception_noise', x_label='com $\sigma^2$', z_label='perception $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise', x_label='perception $\sigma^2$', z_label='com $\sigma^2$', )
     viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
     viz.plot_with_conf2(exp, 'gibson_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
     viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', z_label='com $\sigma^2$')

@@ -87,21 +87,21 @@ def visualize(exp):
     print(ranges)
 
     # gibson cost
-    viz.plot_with_conf(exp, 'gibson_cost', 'msg_dim', 'perception_noise', measure_label='Gibson communication efficiency', x_label='number of color words', z_label='perception $\sigma^2$')
-    viz.plot_with_conf(exp, 'gibson_cost', 'msg_dim', 'com_noise', measure_label='Gibson communication efficiency', x_label='number of color words', z_label='com $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'gibson_cost', 'msg_dim', 'perception_noise', measure_label='Gibson communication efficiency', x_label='number of color words', z_label='perception $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'gibson_cost', 'msg_dim', 'com_noise', measure_label='Gibson communication efficiency', x_label='number of color words', z_label='com $\sigma^2$')
     # viz.plot_with_conf(exp, 'gibson_cost', 'com_noise', 'perception_noise', measure_label='Gibson communication efficiency')
 
     # regier cost
-    viz.plot_with_conf(exp, 'regier_cost', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
-    viz.plot_with_conf(exp, 'regier_cost', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'regier_cost', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'regier_cost', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
 
     # wellformedness
-    viz.plot_with_conf(exp, 'wellformedness', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
-    viz.plot_with_conf(exp, 'wellformedness', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'wellformedness', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'wellformedness', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
 
     # term usage
-    viz.plot_with_conf(exp, 'term_usage', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
-    viz.plot_with_conf(exp, 'term_usage', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'term_usage', 'msg_dim', 'perception_noise', x_label='number of color words', z_label='perception $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'term_usage', 'msg_dim', 'com_noise', x_label='number of color words', z_label='com $\sigma^2$')
 
 
 def main():

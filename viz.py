@@ -60,7 +60,7 @@ def hist(exp, measure_id, x_id):
         plt.savefig(fig_name)
 
 
-def plot_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None, fmt='-'):
+def plot_lines_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None, fmt='-'):
     if measure_label is None:
         measure_label = measure_id.replace('_', ' ')
     if x_label is None:
