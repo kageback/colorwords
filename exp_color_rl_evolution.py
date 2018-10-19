@@ -9,6 +9,7 @@ from gridengine.pipeline import Experiment
 import com_enviroments
 import agents
 import exp_shared
+import evaluate
 
 
 def run(host_name='local', pipeline=''):
@@ -61,7 +62,7 @@ def run(host_name='local', pipeline=''):
 
     game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
 
-    V = exp.run(game.agent_language_map, env, a=game_outcome).result()
+    V = exp.run(evaluate.agent_language_map, env, a=game_outcome).result()
 
     # exp.set_result('agent_language_map', V)
     # exp.set_result('gibson_cost', exp.run(game.compute_gibson_cost, env, a=game_outcome).result(1))

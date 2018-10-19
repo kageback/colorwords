@@ -68,8 +68,8 @@ class BaseGame:
         pass
 
     def evaluate(self, env, agent_a):
-        V = self.agent_language_map(env, agent_a)
-        self.gibson_cost += [self.compute_gibson_cost(env, a=agent_a)[1]]
+        V = evaluate.agent_language_map(env, agent_a)
+        self.gibson_cost += [evaluate.compute_gibson_cost2(env, a=agent_a)[1]]
         self.regier_cost += [evaluate.communication_cost_regier(env, V=V)[0]]
         self.wellformedness += [evaluate.wellformedness(env, V=V)[0]]
         self.term_usage += [evaluate.compute_term_usage(V=V)]
@@ -92,27 +92,15 @@ class BaseGame:
         plt.plot(self.term_usage)
         plt.savefig('{}term_usage_evo.png'.format(self.log_path))
 
-
-    def agent_language_map(self, env, a):
-        V = {}
-        a = th.cuda(a)
-        perception_indices, perceptions = env.full_batch()
-
-        probs = a(perception=perceptions)
-        _, terms = probs.max(1)
-
-        for perception_index in perception_indices:
-            V[perception_index] = terms[perception_index].item()
-
-        return list(V.values())
-
     # other metrics
+    # Outdated as of nosy channel model
     def compute_gibson_cost(self, env, a):
         _, perceptions = env.full_batch()
         perceptions = perceptions.cpu()
         all_terms = th.long_var(range(a.msg_dim), False)
 
         p_WC = F.softmax(a(perception=perceptions), dim=1).t().data.numpy()
+
         p_CW = F.softmax(a(msg=all_terms), dim=1).data.numpy()
 
         S = -np.diag(np.matmul(p_WC.transpose(), (np.log2(p_CW))))
@@ -124,6 +112,7 @@ class BaseGame:
         #     s += -p_WC[w, c]*np.log2(p_CW[w, c])
         # print(S[c] - s)
         return S, avg_S
+
 
     @staticmethod
     def reduce_maps(name, exp, reduce_method='mode'):

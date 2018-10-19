@@ -31,7 +31,7 @@ def run(host_name='local', pipeline=''):
                                    ('print_interval', 1000),
                                    ('msg_dim', 50)],
                      param_ranges=[('avg_over', range(5)),  # 50
-                                   ('perception_noise', np.logspace(0, 9, num=4, base=2)),  # [0, 10, 20, 30, 40, 50,  80, 120, 160, 320]), [0, 25, 50, 100],[0, 10, 20, 40, 80, 160, 320]
+                                   ('perception_noise', [40, 50, 80, 120, 160, 320]),  # np.logspace(0, 9, num=10, base=2)) [0, 10, 20, 30, 40, 50,  80, 120, 160, 320]), [0, 25, 50, 100],[0, 10, 20, 40, 80, 160, 320]
                                    ('com_noise', [0.125])],  # np.logspace(-3, 6, num=10, base=2)   [0, 0.1, 0.3, 0.5, 1] [0, 0.5, 3, 10, 20, 50]
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -60,10 +60,10 @@ def run(host_name='local', pipeline=''):
                                          loss_type=exp.fixed_params['loss_type'],
                                          bw_boost=exp.fixed_params['bw_boost'])
 
-        game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
+        agent_a_trained = exp.run(game.play, env, agent_a, agent_b).result()
+        exp.set_result('agent_a', params_i, agent_a_trained)
 
-        exp.set_result('agent_language_map', params_i, exp.run(game.agent_language_map, env, a=game_outcome).result())
-        exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env, a=game_outcome).result(1))
+
 
     return exp
 
@@ -72,7 +72,10 @@ def analyse(exp):
     env = exp.run(com_enviroments.make, exp.fixed_params['env']).result()
     i = 0
     for (params_i, params_v) in exp:
-        V = exp.get_result('agent_language_map', params_i)
+        agent_a = exp.get_result('agent_a', params_i)
+        V = exp.run(evaluate.agent_language_map, env, a=agent_a).result()
+        exp.set_result('agent_language_map', params_i, V)
+        exp.set_result('gibson_cost', params_i, exp.run(evaluate.compute_gibson_cost2, env, a=agent_a).result())
         exp.set_result('regier_cost', params_i, exp.run(evaluate.regier2, env, map=V).result())
         exp.set_result('wellformedness', params_i, exp.run(evaluate.wellformedness, env, V=V).result())
         exp.set_result('term_usage', params_i, exp.run(evaluate.compute_term_usage, V=V).result())
@@ -97,13 +100,16 @@ def visualize(exp):
 def print_tables(exp):
     term_usage_to_analyse = list(range(3, 12))
     iter = 10
+
     agent_maps = exp.reshape('agent_language_map')
     agent_term_usage = exp.reshape('term_usage')
     maps_vs_noise = exp.reshape('agent_language_map', as_function_of_axes=['perception_noise'])
     term_usage_vs_noise = exp.reshape('term_usage', as_function_of_axes=['perception_noise'])
+
     e = com_enviroments.make('wcs')
     human_maps = np.array(list(e.human_mode_maps.values()))
     human_term_usage = np.array([np.unique(m).shape[0] for m in human_maps])
+
     agent_mean_rand_vs_term_usage = []
     agent_mean_rand_over_noise_groups_vs_term_usage = []
     human_mean_rand_vs_term_usage = []
@@ -111,6 +117,7 @@ def print_tables(exp):
     cross_agent_consensus_to_humans_vs_term_usage = []
     human_to_cielab_rand = []
     human_to_random_rand = []
+
     for t in term_usage_to_analyse:
         agent_mean_rand_vs_term_usage += [evaluate.mean_rand_index(agent_maps[agent_term_usage == t])]
 
@@ -140,29 +147,7 @@ def print_tables(exp):
         human_to_random_rand += [evaluate.mean_rand_index(human_maps[human_term_usage == t],
                                                           [[np.random.randint(t) for n in range(330)] for n in
                                                            range(100)])]
-    # print perception noise influence table
-    exp.log('\n'.join(
-        ['Terms used & Mean rand index for all & Mean rand index within noise group \\\\ \\thickhline'] +
-        ['{:2d} & {:.3f} & {:.3f} \\\\ \\hline'.format(
-            term_usage_to_analyse[i],
-            agent_mean_rand_vs_term_usage[i],
-            agent_mean_rand_over_noise_groups_vs_term_usage[i])
-            for i in range(len(term_usage_to_analyse))
-        ]))
-    # print human vs machine
-    exp.log('\n'.join(
-        [
-            'Terms used & Human mean rand index for all & Agents mean rand index & Cross human agent rand index & cross agent consensus to human \\\\ \\thickhline'] +
-        ['{:2d} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f}\\\\ \\hline'.format(
-            term_usage_to_analyse[i],
-            human_mean_rand_vs_term_usage[i],
-            agent_mean_rand_vs_term_usage[i],
-            cross_rand_vs_term_usage[i],
-            cross_agent_consensus_to_humans_vs_term_usage[i],
-            human_to_cielab_rand[i],
-            human_to_random_rand[i])
-            for i in range(len(term_usage_to_analyse))
-        ]))
+
 
 
 def main(args):

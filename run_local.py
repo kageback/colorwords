@@ -45,7 +45,7 @@ def run():
 
         game_outcome = game.play(env, agent_a, agent_b)
 
-        V = game.agent_language_map(env, a=game_outcome)
+        V = evaluate.agent_language_map(env, a=game_outcome)
 
         exp.set_result('gibson_cost', params_i, game.compute_gibson_cost(env, a=game_outcome)[1])
         exp.set_result('regier_cost', params_i, evaluate.communication_cost_regier(env, V=V))

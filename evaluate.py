@@ -1,10 +1,47 @@
 import itertools
 import math
+import torch.nn.functional as F
+import torchHelpers as th
 
 import numpy as np
 from sklearn.metrics.cluster import adjusted_rand_score
 
 import Correlation_Clustering
+
+
+def agent_language_map(env, a):
+    V = {}
+    a = th.cuda(a)
+    perception_indices, perceptions = env.full_batch()
+
+    probs = a(perception=perceptions)
+    _, terms = probs.max(1)
+
+    for perception_index in perception_indices:
+        V[perception_index] = terms[perception_index].item()
+
+    return list(V.values())
+
+def compute_gibson_cost2( env, a):
+    _, perceptions = env.full_batch()
+    perceptions = perceptions.cpu()
+    p_WC = F.softmax(a(perception=perceptions), dim=1).t().data.numpy()
+    return bayes_gibson(p_WC)
+
+
+def bayes_gibson(p_WC):
+    p_WC += np.finfo(float).eps  # Make sure there is no zero probs
+    msg_dim = p_WC.shape[0]
+    env_dim = p_WC.shape[1]
+    # p_c = 1/env_dim # not needed since it is uniform
+    z = 0
+    for i in range(env_dim):
+        z += p_WC[:, i]  # * p_c
+    p_CW = p_WC.transpose() / z
+    es = 0
+    for w in range(msg_dim):
+        es += -p_WC[w, :] * np.log2(p_CW[:, w])
+    return es.mean()
 
 
 def compute_cielab_map(wcs, k, iterations=10, bw_boost=1):

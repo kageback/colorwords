@@ -61,7 +61,7 @@ def run(host_name):
 
         game_outcome = exp.run(game.play, env, agent_a, agent_b).result()
 
-        V = exp.run(game.agent_language_map, env, a=game_outcome).result()
+        V = exp.run(evaluate.agent_language_map, env, a=game_outcome).result()
 
         exp.set_result('agent_language_map', params_i, V)
         exp.set_result('gibson_cost', params_i, exp.run(game.compute_gibson_cost, env, a=game_outcome).result(1))
