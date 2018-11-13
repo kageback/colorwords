@@ -23,15 +23,15 @@ def run(host_name='local', pipeline=''):
                      fixed_params=[('loss_type', 'REINFORCE'),
                                    ('bw_boost', 1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 20000),  # 10000
+                                   ('max_epochs', 200),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
                                    ('msg_dim', 50)],
-                     param_ranges=[('avg_over', range(5)),  # 50
-                                   ('perception_noise', [40, 50, 80, 120, 160, 320]),  # np.logspace(0, 9, num=10, base=2)) [0, 10, 20, 30, 40, 50,  80, 120, 160, 320]), [0, 25, 50, 100],[0, 10, 20, 40, 80, 160, 320]
+                     param_ranges=[('avg_over', range(1)),  # 50
+                                   ('perception_noise',[40]),  # np.logspace(0, 9, num=10, base=2)) [0, 10, 20, 30, 40, 50,  80, 120, 160, 320]), [0, 25, 50, 100],[0, 10, 20, 40, 80, 160, 320]
                                    ('com_noise', [0.125])],  # np.logspace(-3, 6, num=10, base=2)   [0, 0.1, 0.3, 0.5, 1] [0, 0.5, 3, 10, 20, 50]
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -92,9 +92,9 @@ def visualize(exp):
 
     viz.plot_lines_with_conf(exp, 'term_usage', 'com_noise', 'perception_noise', x_label='com $\sigma^2$', z_label='perception $\sigma^2$')
     viz.plot_lines_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise', x_label='perception $\sigma^2$', z_label='com $\sigma^2$', )
-    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
-    viz.plot_with_conf2(exp, 'gibson_cost', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
-    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', measure_label='KL Loss', z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp, 'gibson_cost', 'term_usage', 'com_noise', measure_label='Expected surprise', group_by_measure_label='Color terms used', ylim=[5.75, 7.25], xlim=[3, 11], z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', measure_label='Well-formedness', z_label='com $\sigma^2$')
 
 
 def print_tables(exp):
@@ -156,15 +156,15 @@ def main(args):
     exp = run(args.host_name, pipeline=args.pipeline)
 
     # evaluate results
-    analyse(exp)
+    if args.pipeline == '':
+        analyse(exp)
 
+        print("\nAll tasks queued to clusters")
+        exp.save()
 
-    print("\nAll tasks queued to clusters")
-    exp.save()
-
-    # wait for all tasks to complete and sync back result
-    exp.wait(retry_interval=5)
-    exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
+        # wait for all tasks to complete and sync back result
+        exp.wait(retry_interval=5)
+        exp.queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.LOCAL, recursive=True)
 
 
     # Visualize experiment

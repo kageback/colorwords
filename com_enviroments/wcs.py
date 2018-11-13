@@ -40,6 +40,8 @@ class WCS_Enviroment(BaseEnviroment):
 
         self.human_mode_maps = self.compute_human_mode_maps(wcs_path)
 
+        self.plot_with_colors(V=None, save_to_path = wcs_path + 'mode_maps/empty_map.png')
+
     def compute_human_mode_maps(self, wcs_path):
         # Human mode maps
         fname = wcs_path + 'mode_maps.plk'
@@ -148,7 +150,8 @@ class WCS_Enviroment(BaseEnviroment):
                     word[y, x] = -1
                     rgb[y, x, :] = np.array([1, 1, 1])
                 elif len(t) == 1:
-                    word[y, x] = V[t.index.values[0]]
+                    if V is not None:
+                        word[y, x] = V[t.index.values[0]]
                     rgb[y, x, :] = self.cielab2rgb(t[['L*', 'a*', 'b*']].values[0])
                 else:
                     raise TabError()
@@ -157,25 +160,26 @@ class WCS_Enviroment(BaseEnviroment):
         my_cmap = plt.get_cmap('tab20')
         bo = 0.2
         lw = 1.5
-        for y in range(N_y):
-            for x in range(N_x):
-                if word[y, x] >= 0:
-                    word_color = my_cmap.colors[word[y, x] % 20]
-                    word_border = '-'
-                    if word[y, x] != word[y, (x+1) % N_x]:
-                        ax.add_line(lines.Line2D([x + 1, x + 1], [N_y - y, N_y - (y + 1)], color='w'))
-                        ax.add_line(lines.Line2D([x+1-bo, x+1-bo], [N_y - (y+bo), N_y - (y+1-bo)], color=word_color, ls=word_border, lw=lw))
+        if V is not None:
+            for y in range(N_y):
+                for x in range(N_x):
+                    if word[y, x] >= 0:
+                        word_color = my_cmap.colors[word[y, x] % 20]
+                        word_border = '-'
+                        if word[y, x] != word[y, (x+1) % N_x]:
+                            ax.add_line(lines.Line2D([x + 1, x + 1], [N_y - y, N_y - (y + 1)], color='w'))
+                            ax.add_line(lines.Line2D([x+1-bo, x+1-bo], [N_y - (y+bo), N_y - (y+1-bo)], color=word_color, ls=word_border, lw=lw))
 
-                    if word[y, x] != word[y, x-1 if x-1 >= 0 else N_x-1]:
-                        ax.add_line(lines.Line2D([x+bo, x+bo], [N_y - (y+bo), N_y - (y+1-bo)], color=word_color, ls=word_border, lw=lw))
+                        if word[y, x] != word[y, x-1 if x-1 >= 0 else N_x-1]:
+                            ax.add_line(lines.Line2D([x+bo, x+bo], [N_y - (y+bo), N_y - (y+1-bo)], color=word_color, ls=word_border, lw=lw))
 
 
-                    if (y+1 < N_y and word[y, x] != word[y+1, x]) or y+1 == N_y:
-                        ax.add_line(lines.Line2D([x+bo, x + 1-bo], [N_y - (y + 1-bo), N_y - (y + 1-bo)], color=word_color, ls=word_border, lw=lw))
-                        ax.add_line(lines.Line2D([x, x + 1], [N_y - (y + 1), N_y - (y + 1)], color='w'))
+                        if (y+1 < N_y and word[y, x] != word[y+1, x]) or y+1 == N_y:
+                            ax.add_line(lines.Line2D([x+bo, x + 1-bo], [N_y - (y + 1-bo), N_y - (y + 1-bo)], color=word_color, ls=word_border, lw=lw))
+                            ax.add_line(lines.Line2D([x, x + 1], [N_y - (y + 1), N_y - (y + 1)], color='w'))
 
-                    if (y-1 >= 0 and word[y, x] != word[y-1, x]) or y-1 < 0:
-                            ax.add_line(lines.Line2D([x+bo, x + 1-bo], [N_y - (y + bo), N_y - (y + bo)], color=word_color, ls=word_border, lw=lw))
+                        if (y-1 >= 0 and word[y, x] != word[y-1, x]) or y-1 < 0:
+                                ax.add_line(lines.Line2D([x+bo, x + 1-bo], [N_y - (y + bo), N_y - (y + bo)], color=word_color, ls=word_border, lw=lw))
 
         my_cmap.set_bad(color='w', alpha=0)
         data = rgb if use_real_color else word

@@ -77,6 +77,7 @@ class BaseGame:
                                                                                 self.gibson_cost[-1],
                                                                                 self.regier_cost[-1],
                                                                                 self.wellformedness[-1]))
+
         env.plot_with_colors(V, save_to_path='{}evo_map-{}_terms.png'.format(self.log_path, self.term_usage[-1]))
 
         plt.figure()
@@ -91,6 +92,9 @@ class BaseGame:
         plt.figure()
         plt.plot(self.term_usage)
         plt.savefig('{}term_usage_evo.png'.format(self.log_path))
+
+    def agent_language_map(self, env, a):
+        pass
 
     # other metrics
     # Outdated as of nosy channel model

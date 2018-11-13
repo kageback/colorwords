@@ -104,7 +104,7 @@ def plot_lines_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_labe
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + x_id + '_for_' +  z_id +'.png'
     plt.savefig(fig_name)
 
-def plot_with_conf2(exp, measure_id, group_by_measure_id, z_id, measure_label=None, group_by_measure_label=None, z_label=None, fmt='-'):
+def plot_with_conf2(exp, measure_id, group_by_measure_id, z_id, measure_label=None, group_by_measure_label=None, z_label=None, ylim=None, xlim=None, fmt='-'):
     if measure_label is None:
         measure_label = measure_id.replace('_', ' ')
     if group_by_measure_label is None:
@@ -135,7 +135,10 @@ def plot_with_conf2(exp, measure_id, group_by_measure_id, z_id, measure_label=No
     ax.legend()
     plt.ylabel(measure_label)
     plt.xlabel(group_by_measure_label)
-
+    if not xlim is None:
+        plt.xlim(xlim)
+    if not ylim is None:
+        plt.ylim(ylim)
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + group_by_measure_id + '_for_' +  z_id +'.png'
     plt.savefig(fig_name)
 

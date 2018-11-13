@@ -44,11 +44,11 @@ def run(host_name='local', pipeline='', exp_rl_id='', exp_ccc_id='', exp_random_
 
 def visualize(exp):
 
-    cost_plot(exp, 'regier_cost', ylabel='KL Loss', xlabel='Color terms used')
-    cost_plot(exp, 'wellformedness', ylabel='Wellformedness', xlabel='Color terms used')
+    cost_plot(exp, 'regier_cost', ylabel='KL Loss', xlabel='Color terms used', xlim=[3, 11])
+    cost_plot(exp, 'wellformedness', ylabel='Well-formedness', xlabel='Color terms used', ylim=[30000, 50000], xlim=[3, 11])
 
 
-def cost_plot(exp, measure_id, ylabel='', xlabel='' ):
+def cost_plot(exp, measure_id, ylabel='', xlabel='', ylim=None, xlim=None):
     group_by_measure_id = 'term_usage'
     fig, ax = plt.subplots()
 
@@ -67,7 +67,11 @@ def cost_plot(exp, measure_id, ylabel='', xlabel='' ):
 
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
-    plt.xlim([3, 11])
+    if not xlim is None:
+        plt.xlim(xlim)
+    if not ylim is None:
+        plt.ylim(ylim)
+
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + group_by_measure_id + '.png'
     plt.savefig(fig_name)
 
