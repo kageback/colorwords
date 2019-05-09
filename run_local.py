@@ -14,7 +14,7 @@ def run():
 
     exp = Experiment(exp_name='local_experiment',
                      fixed_params=[('env', 'wcs'),
-                                   ('max_epochs', 10000),  #10000
+                                   ('max_epochs', 100),  #10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
@@ -74,9 +74,9 @@ def visualize(pipeline_name):
 
     viz.plot_with_std(exp, 'regier_cost', 'com_noise', 'msg_dim')
     viz.plot_with_std(exp, 'wellformedness', 'com_noise', 'msg_dim')
-    viz.plot_with_std(exp, 'term_usage', 'com_noise', 'msg_dim')
-    viz.plot_with_std(exp, 'term_usage', 'perception_noise', 'msg_dim')
-    viz.plot_with_std(exp, 'term_usage', 'perception_noise', 'com_noise')
+    #viz.plot_with_std(exp, 'term_usage', 'com_noise', 'msg_dim')
+    #viz.plot_with_std(exp, 'term_usage', 'perception_noise', 'msg_dim')
+    #viz.plot_with_std(exp, 'term_usage', 'perception_noise', 'com_noise')
 
 
 if __name__ == "__main__":
