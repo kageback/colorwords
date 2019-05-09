@@ -1,6 +1,3 @@
-[submodule "cogsci"]
-	path = cogsci
-	url = https://git.overleaf.com/13367966dpxyzntxshtp
 [submodule "gridengine"]
 	path = gridengine
 	url = https://github.com/kageback/sge-python.git
