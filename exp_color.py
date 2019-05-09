@@ -13,6 +13,8 @@ import exp_color_ccc
 import exp_color_random
 import exp_color_human
 
+from PIL import Image
+
 import Correlation_Clustering
 
 
@@ -44,22 +46,23 @@ def run(host_name='local', pipeline='', exp_rl_id='', exp_ccc_id='', exp_random_
 
 def visualize(exp):
 
-    cost_plot(exp, 'regier_cost', ylabel='KL Loss', xlabel='Color terms used', xlim=[3, 11])
+    cost_plot(exp, 'regier_cost', ylabel='KL Loss', xlabel='Color terms used', xlim=[3, 11], ledgend_anchor=[0.53, 0.8])
     cost_plot(exp, 'wellformedness', ylabel='Well-formedness', xlabel='Color terms used', ylim=[30000, 50000], xlim=[3, 11])
 
 
-def cost_plot(exp, measure_id, ylabel='', xlabel='', ylim=None, xlim=None):
+def cost_plot(exp, measure_id, ylabel='', xlabel='', ylim=None, xlim=None, ledgend_anchor=None):
     group_by_measure_id = 'term_usage'
     fig, ax = plt.subplots()
 
-    add_line_to_axes(ax, exp_color_ccc.run(pipeline=exp.fixed_params['exp_ccc_id']), measure_id, group_by_measure_id, line_label='CIELAB CC')
+    add_line_to_axes(ax, exp_color_ccc.run(pipeline=exp.fixed_params['exp_ccc_id']), measure_id, group_by_measure_id, line_label='CIELAB correlation clustering')
     add_line_to_axes(ax, exp_color_random.run(pipeline=exp.fixed_params['exp_random_id']), measure_id, group_by_measure_id, line_label='Random')
     add_scatter_to_axes(ax, exp_color_human.run(pipeline=exp.fixed_params['exp_human_id']), measure_id, group_by_measure_id, label='WCS languages')
     add_line_to_axes(ax, exp_color_human.run(pipeline=exp.fixed_params['exp_human_id']), measure_id, group_by_measure_id, line_label='WCS languages mean', conf=False)
-    add_line_to_axes(ax, exp_color_rl.run(pipeline=exp.fixed_params['exp_rl_id']), measure_id, group_by_measure_id,
-                     line_label='RL')
-
-    ax.legend()
+    add_line_to_axes(ax, exp_color_rl.run(pipeline=exp.fixed_params['exp_rl_id']), measure_id, group_by_measure_id, line_label='Reinforcement learning')
+    if not ledgend_anchor is None:
+        ax.legend(loc="upper left", bbox_to_anchor=(ledgend_anchor[0], ledgend_anchor[1]))
+    else:
+        ax.legend()
     if ylabel == '':
         ylabel = measure_id.replace('_', ' ')
     if xlabel == '':
@@ -73,7 +76,12 @@ def cost_plot(exp, measure_id, ylabel='', xlabel='', ylim=None, xlim=None):
         plt.ylim(ylim)
 
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + group_by_measure_id + '.png'
-    plt.savefig(fig_name)
+
+    plt.savefig(fig_name, dpi=300, compression="tiff_lzw")
+    img = Image.open(fig_name)
+    # (3) save as TIFF
+    img.save(fig_name + '.tiff', dpi=(300, 300))
+    img.close()
 
 
 def add_scatter_to_axes(ax, exp_rl,  measure_id, group_by_measure_id, label=''):
@@ -129,10 +137,18 @@ def print_tables(exp):
     for t in term_usage_to_analyse:
         agent_to_agent += [evaluate.mean_rand_index(agent_maps[agent_term_usage == t])]
 
-        a = np.array([evaluate.mean_rand_index(maps_vs_noise[noise_i][term_usage_vs_noise[noise_i] == t])
-                      for noise_i in range(len(maps_vs_noise))])
+        mc = []
+        for noise_i in range(len(maps_vs_noise)):
+            tmp = maps_vs_noise[noise_i][term_usage_vs_noise[noise_i] == t]
+            if tmp.shape[0] > 1:
+                mc += [evaluate.mean_rand_index(tmp)]
+        mc = np.array(mc)
+        agent_to_agent_per_noise += [tuple(mc[:, i][~np.isnan(mc[:, i])].mean() for i in range(2))]
 
-        agent_to_agent_per_noise += [a[~np.isnan(a)].mean()]
+        #a = np.array([evaluate.mean_rand_index(maps_vs_noise[noise_i][term_usage_vs_noise[noise_i] == t])
+                      #for noise_i in range(len(maps_vs_noise))])
+
+        #agent_to_agent_per_noise += [a[~np.isnan(a)].mean()]
 
         human_to_human += [evaluate.mean_rand_index(human_maps[human_term_usage == t])]
 
@@ -151,25 +167,25 @@ def print_tables(exp):
     # print human vs machine
     exp.log('\n'.join(
         [
-            'Terms & H-H & RL-RL & H-RL & H-CCC & RL-CCC & H-R \\\\ \\thickhline'] +
-        ['{:2d} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f} & {:.3f}\\\\ \\hline'.format(
+            '\nTerms & H-H & RL-RL & H-RL & H-CCC & RL-CCC & H-R \\\\ \\thickhline'] +
+        ['{:2d} & {:.3f}($\pm${:.3f}) & {:.3f}($\pm${:.3f}) & {:.3f}($\pm${:.3f}) & {:.3f}($\pm${:.3f}) & {:.3f}($\pm${:.3f}) & {:.3f}($\pm${:.3f})\\\\ \\hline'.format(
             term_usage_to_analyse[i],
-            human_to_human[i],
-            agent_to_agent[i],
-            human_to_agent[i],
-            human_to_CCC[i],
-            agent_to_CCC[i],
-            human_to_random[i])
+            human_to_human[i][0],human_to_human[i][1],
+            agent_to_agent[i][0],agent_to_agent[i][1],
+            human_to_agent[i][0],human_to_agent[i][1],
+            human_to_CCC[i][0],human_to_CCC[i][1],
+            agent_to_CCC[i][0],agent_to_CCC[i][1],
+            human_to_random[i][0],human_to_random[i][1])
             for i in range(len(term_usage_to_analyse))
-        ]))
+        ]).replace('0.', '.'))
 
     # print perception noise influence table
     exp.log('\n'.join(
-        ['Terms used & Mean rand index for all & Mean rand index within noise group \\\\ \\thickhline'] +
-        ['{:2d} & {:.3f} & {:.3f} \\\\ \\hline'.format(
+        ['\nTerms used & All & Within noise group \\\\ \\thickhline'] +
+        ['{:2d} & {:.3f}($\pm${:.3f}) & {:.3f}($\pm${:.3f}) \\\\ \\hline'.format(
             term_usage_to_analyse[i],
-            agent_to_agent[i],
-            agent_to_agent_per_noise[i])
+            agent_to_agent[i][0],agent_to_agent[i][1],
+            agent_to_agent_per_noise[i][0],agent_to_agent_per_noise[i][1])
             for i in range(len(term_usage_to_analyse))
         ]))
 

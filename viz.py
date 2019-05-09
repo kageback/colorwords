@@ -7,6 +7,8 @@ matplotlib.use('Agg')
 
 from matplotlib import rc
 
+from PIL import Image
+
 #rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 ## for Palatino and other serif fonts use:
 #rc('font',**{'family':'serif','serif':['Palatino']})
@@ -46,7 +48,7 @@ def plot_with_std(exp, measure_id, x_id, z_id, measure_label=None, x_label=None,
     plt.xlabel(x_label)
 
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + x_id + '_for_' +  z_id +'.png'
-    plt.savefig(fig_name)
+    save_fig(fig_name)
 
 def hist(exp, measure_id, x_id):
     dists = exp.reshape(measure_id, [x_id])
@@ -57,7 +59,7 @@ def hist(exp, measure_id, x_id):
         plt.figure()
         plt.hist(dists[i])
         fig_name = exp.pipeline_path + '/fig_hist_' + measure_id + '_vs_' + x_id + '-' + str(x_vals[i]) + '.png'
-        plt.savefig(fig_name)
+        save_fig(fig_name)
 
 def plot_with_conf(exp, measure_id, x_id, measure_label=None, x_label=None, fmt='-'):
     if measure_label is None:
@@ -77,7 +79,9 @@ def plot_with_conf(exp, measure_id, x_id, measure_label=None, x_label=None, fmt=
     plt.xlabel(x_label)
 
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + x_id +'.png'
-    plt.savefig(fig_name)
+    save_fig(fig_name)
+
+
 
 def plot_lines_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_label=None, z_label=None, fmt='-'):
     if measure_label is None:
@@ -102,7 +106,7 @@ def plot_lines_with_conf(exp, measure_id, x_id, z_id, measure_label=None, x_labe
     plt.xlabel(x_label)
 
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + x_id + '_for_' +  z_id +'.png'
-    plt.savefig(fig_name)
+    save_fig(fig_name)
 
 def plot_with_conf2(exp, measure_id, group_by_measure_id, z_id, measure_label=None, group_by_measure_label=None, z_label=None, ylim=None, xlim=None, fmt='-'):
     if measure_label is None:
@@ -131,8 +135,8 @@ def plot_with_conf2(exp, measure_id, group_by_measure_id, z_id, measure_label=No
         cis = np.array(cis)
         ax.plot(x, means, fmt, label=z_label + '= {0:.1f}'.format(z_value))
         ax.fill_between(x, cis[:, 0], cis[:, 1], alpha=0.2)
-
-    ax.legend()
+    if len(z) > 1:
+        ax.legend()
     plt.ylabel(measure_label)
     plt.xlabel(group_by_measure_label)
     if not xlim is None:
@@ -140,7 +144,17 @@ def plot_with_conf2(exp, measure_id, group_by_measure_id, z_id, measure_label=No
     if not ylim is None:
         plt.ylim(ylim)
     fig_name = exp.pipeline_path + '/fig_' + measure_id + '_vs_' + group_by_measure_id + '_for_' +  z_id +'.png'
-    plt.savefig(fig_name)
+    save_fig(fig_name)
+
+
+def save_fig(fig_name):
+    plt.savefig(fig_name, dpi=300, compression="tiff_lzw")
+    img = Image.open(fig_name)
+    # (3) save as TIFF
+    img.save(fig_name + '.tiff', dpi=(300, 300))
+    img.close()
+
+
 
 from scipy.stats import t
 def estimate_mean(x, confidence_interval=0.95):

@@ -141,7 +141,7 @@ def compute_term_usage(V):
     # n = len(cat_sizes)
     # return n, cat_sizes
 
-
+from scipy.stats import t
 def mean_rand_index(ce_a, ce_b=None):
     if ce_b is None:
         skip_trace = 1
@@ -153,14 +153,28 @@ def mean_rand_index(ce_a, ce_b=None):
             ce = ce_b
             ce_b = ce_a
             ce_a = ce
-    ar = 0
-    n = 0
+    ar = []
     for i in range(skip_trace, len(ce_a)):
         for j in range(0, min([i + 1, len(ce_b)]) - skip_trace):
             # debug code: print('i={},j={}'.format(i, j))
-            ar += adjusted_rand_score(ce_a[i], ce_b[j])
-            n += 1
-    if n >= 1:
-        return ar / n
+            ar += [adjusted_rand_score(ce_a[i], ce_b[j])]
+    if len(ar) >= 1:
+        x = np.array(ar)
+        n = x.shape[-1]
+        mean = x.mean()
+        stddev = x.std(ddof=1)  # Sample variance
+
+        # Get the endpoints of the range that contains 95% of the distribution
+        # The degree used in calculations is N - ddof
+        confidence_interval = 0.95
+        t_bounds = t.interval(confidence_interval, n - 1)
+        c = t_bounds[1] * stddev / np.sqrt(n)
+
+        return mean, c, n
     else:
         return float('nan')
+
+
+
+
+        return mean, ci

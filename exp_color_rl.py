@@ -9,7 +9,7 @@ from gridengine.pipeline import Experiment
 import com_enviroments
 import agents
 import exp_shared
-
+import matplotlib.pyplot as plt
 
 def run(host_name='local', pipeline=''):
     if pipeline != '':
@@ -86,15 +86,45 @@ def analyse(exp):
 def visualize(exp):
     print('Visualize results')
 
-    # term usage across different level of noise
-    viz.plot_with_conf(exp, 'term_usage', 'com_noise', x_label='com $\sigma^2$')
-    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', x_label='perception $\sigma^2$')
+    viz.plot_with_conf(exp, 'term_usage', 'com_noise', x_label='communication $\sigma^2$')
 
-    viz.plot_lines_with_conf(exp, 'term_usage', 'com_noise', 'perception_noise', x_label='com $\sigma^2$', z_label='perception $\sigma^2$')
-    viz.plot_lines_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise', x_label='perception $\sigma^2$', z_label='com $\sigma^2$', )
-    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', measure_label='KL Loss', z_label='com $\sigma^2$')
-    viz.plot_with_conf2(exp, 'gibson_cost', 'term_usage', 'com_noise', measure_label='Expected surprise', group_by_measure_label='Color terms used', ylim=[5.75, 7.25], xlim=[3, 11], z_label='com $\sigma^2$')
-    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', measure_label='Well-formedness', z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp,
+                         'gibson_cost', 'term_usage', 'com_noise',
+                         measure_label='Expected surprise',
+                         group_by_measure_label='Color terms used',
+                         ylim=[5.75, 7.25], xlim=[3, 11],
+                         z_label='communication $\sigma^2$')
+
+    viz.plot_with_conf(exp, 'term_usage', 'perception_noise', x_label='environment $\sigma^2$')
+
+
+    # plot 2d histogram
+    plt.figure()
+    y = exp.reshape('term_usage', as_function_of_axes=['perception_noise']).reshape(-1)
+    x = np.array([[noise for _ in exp.param_ranges['avg_over']]
+                  for noise in exp.param_ranges['perception_noise']]).reshape(-1)
+
+    n = exp.param_ranges['perception_noise']
+    n = n + (n/2)
+    n[-1] = 600
+    plt.hist2d(x, y, bins=[n, range(y.min(), y.max()+1)], cmap=plt.cm.BuPu)
+    plt.xlabel('environment $\sigma_e^2$')
+    plt.ylabel('term usage')
+    plt.colorbar()
+    fig_name = exp.pipeline_path + '/fig_term_histogram.png.asdf.tiff'
+
+    plt.savefig(fig_name, dpi=300, compression="tiff_lzw")
+
+    # term usage across different level of noise
+    # viz.plot_with_conf(exp, 'term_usage', 'com_noise', x_label='com $\sigma^2$')
+    # viz.plot_lines_with_conf(exp, 'term_usage', 'com_noise', 'perception_noise', x_label='com $\sigma^2$',
+    #                              z_label='perception $\sigma^2$')
+
+    #    viz.plot_lines_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise', x_label='perception $\sigma^2$',
+    #                         z_label='com $\sigma^2$', )
+
+    # viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', measure_label='KL Loss', z_label='com $\sigma^2$')
+    # viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', measure_label='Well-formedness', z_label='com $\sigma^2$')
 
 
 def print_tables(exp):
