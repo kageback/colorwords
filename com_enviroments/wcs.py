@@ -90,10 +90,12 @@ class WCS_Enviroment(BaseEnviroment):
         return res
 
     def get_data(self, url, local_name):
+        if not os.path.isdir(os.path.dirname(local_name)):
+            os.mkdir(os.path.dirname(local_name))
         if not os.path.exists(local_name):
             print('Downloading ' + url)
-            print('saved as ' + local_name)
             request.urlretrieve(url, local_name)
+            print('saved as ' + local_name)
 
     # Data
     def full_batch(self):
