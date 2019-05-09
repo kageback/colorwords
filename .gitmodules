@@ -1,6 +1,3 @@
 [submodule "gridengine"]
 	path = gridengine
 	url = https://github.com/kageback/sge-python.git
-[submodule "plos2018"]
-	path = plos2018
-	url = https://git.overleaf.com/16510790vmwjctvnwbwn
