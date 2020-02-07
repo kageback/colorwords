@@ -13,7 +13,7 @@ from PIL import Image
 ## for Palatino and other serif fonts use:
 #rc('font',**{'family':'serif','serif':['Palatino']})
 
-rc('text', usetex=True)
+#rc('text', usetex=True)
 
 import matplotlib.pyplot as plt
 

@@ -198,7 +198,7 @@ def main(args):
 
 
     # Visualize experiment
-    visualize(exp)
+    # visualize(exp)
 
     #print_tables(exp)
 
