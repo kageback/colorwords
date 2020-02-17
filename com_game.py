@@ -42,7 +42,6 @@ class BaseGame:
         agent_b = th.cuda(agent_b)
 
         optimizer = optim.Adam(list(agent_a.parameters()) + list(agent_b.parameters()))
-
         for i in range(self.max_epochs):
             optimizer.zero_grad()
 
@@ -283,5 +282,84 @@ class OneHotChannelGame(BaseGame):
               (self.loss_sender,
                self.loss_receiver,
                torch.exp(self.loss_receiver), self.sum_reward / (self.print_interval * self.batch_size))
+              )
+        self.sum_reward = 0
+
+
+class DiscreteGame(BaseGame):
+    def __init__(self,
+                 reward_func='regier_reward',
+                 bw_boost=0,
+                 com_noise=0,
+                 msg_dim=11,
+                 max_epochs=1000,
+                 perception_noise=0,
+                 batch_size=100,
+                 print_interval=1000,
+                 evaluate_interval=0,
+                 log_path='',
+                 perception_dim=3,
+                 loss_type='CrossEntropyLoss'):
+        super().__init__(max_epochs, batch_size, print_interval, evaluate_interval, log_path)
+        self.reward_func = reward_func
+        self.bw_boost = bw_boost
+        self.com_noise = com_noise
+        self.msg_dim = msg_dim
+        self.perception_noise = perception_noise
+        self.perception_dim = perception_dim
+
+        self.loss_type = loss_type
+
+        self.sum_reward = 0
+        self.n = 0
+        self.baseline = 0
+        self.criterion_receiver = torch.nn.CrossEntropyLoss()
+    def communication_channel(self, env, agent_a, agent_b, target, perception):
+        # add perceptual noise
+
+        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
+                                    torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
+        perception = perception + noise
+        # generate message
+        msg_logits = agent_a(perception=perception)
+        # add communication noise
+        # msg_probs = F.gumbel_softmax(msg_logits, tau=2 / 3)
+        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.msg_dim),
+                                    torch.ones(self.batch_size, self.msg_dim) * self.com_noise).sample())
+        msg_probs = F.softmax(msg_logits + noise, dim=1)
+        msg_dist = Categorical(msg_probs)
+        msg = msg_dist.sample()
+        # interpret message and sample a guess
+        guess_logits = agent_b(msg=msg)
+        guess_probs = F.softmax(guess_logits, dim=1)
+        guess_dist = Categorical(guess_probs)
+        guess = guess_dist.sample()
+
+        #compute reward
+        if self.reward_func == 'regier_reward':
+            CIELAB_guess = env.chip_index2CIELAB(guess.data)
+            reward = env.regier_reward(perception, CIELAB_guess, bw_boost=self.bw_boost)
+        elif self.reward_func == 'abs_dist':
+            diff = torch.abs(target - guess.unsqueeze(dim=1))
+            reward = 1-(diff.float()/100) #1-(diff.float()/50)
+
+        self.sum_reward += reward.sum()
+
+        # compute loss and update model
+        if self.loss_type =='REINFORCE':
+            sender_loss = (-msg_dist.log_prob(msg) * (reward - self.baseline)).mean()
+            reciever_loss = (-guess_dist.log_prob(guess) * (reward - self.baseline)).mean()
+            loss = reciever_loss + sender_loss
+            # update baseline
+            self.n += 1
+            self.baseline += (reward.detach().mean() - self.baseline) / self.n
+        elif self.loss_type == 'CrossEntropyLoss':
+            loss = self.criterion_receiver(guess_logits, target.squeeze())
+
+        return loss
+    def print_status(self, loss):
+
+        print("Loss %f Average reward %f" %
+              (loss, self.sum_reward / (self.print_interval * self.batch_size))
               )
         self.sum_reward = 0
