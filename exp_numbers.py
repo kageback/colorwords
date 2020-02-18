@@ -11,23 +11,26 @@ import com_enviroments
 import agents
 import exp_shared
 
-def run(host_name):
+
+def run(host_name='local', pipeline=''):
+    if pipeline != '':
+        return exp_shared.load_exp(pipeline)
     # Create and run new experiment
     queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
     exp = Experiment(exp_name='num_b',
                      fixed_params=[('env', 'numbers'),
-                                   ('max_epochs', 10000),  #10000
+                                   ('max_epochs', 100),  #10000
                                    ('hidden_dim', 10),
                                    ('batch_size', 100),
                                    ('perception_dim', 1),
                                    ('target_dim', 100),
                                    ('print_interval', 1000)],
-                     param_ranges=[('avg_over', range(20)),  # 50
+                     param_ranges=[('avg_over', range(2)),  # 50
                                    ('perception_noise', [0]),  # [0, 25, 50, 100],
-                                   ('msg_dim', range(1, 10)), #3, 12
-                                   ('com_noise', np.linspace(start=0, stop=1, num=11))
+                                   ('msg_dim', range(9, 10)), #3, 12
+                                   ('com_noise', np.linspace(start=0, stop=1, num=1))
                                    ],
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
@@ -105,7 +108,7 @@ def visualize(exp):
 
 
 def main():
-    args = exp_shared.parse_script_arguments()
+    args = exp_shared.parse_script_arguments().parse_args()
     # Run experiment
     if args.pipeline == '':
         exp = run(args.host_name)
@@ -127,4 +130,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

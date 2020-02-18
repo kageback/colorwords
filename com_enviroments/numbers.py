@@ -46,5 +46,8 @@ class NumberEnvironment(BaseEnviroment):
                 data += [qry['timeseries'][1] for qry in literal_eval(res[0])]
             data = np.array(data)
             data /= data.sum()
+            # log-reg smoothing
+            data = smoothing(data)
             np.save(fname, data)
         return data
+    
