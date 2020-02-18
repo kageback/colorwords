@@ -7,6 +7,8 @@ from gridengine.pipeline import Experiment
 def create_queue(host_name):
     if host_name == 'local':
         queue = Local()
+    elif host_name == 'localhost':
+        queue = GEQueue(cluster_wd='~/runtime/colorwords/', host='localhost', queue_limit=4)
     elif host_name == 'titan':
         queue = GEQueue(cluster_wd='~/runtime/colorwords/', host='titan.kageback.se', ge_gpu=0, queue_limit=4)
     elif host_name == 'home':
@@ -20,8 +22,8 @@ def create_queue(host_name):
 
 def parse_script_arguments():
     parser = argparse.ArgumentParser(description='Communication experiments')
-    parser.add_argument('--host_name', type=str, default='local',
-                        help='Select which Grid engine host to use (or run local): (ttitanina | titan | home | [local])')
+    parser.add_argument('--host_name', type=str, default='localhost',
+                        help='Select which Grid engine host to use (or run local): (localhost | ttitanina | titan | home | [local])')
     parser.add_argument('--pipeline', type=str, default='',
                         help='Name of existing pipeline to load for re-visualization')
     parser.add_argument('--resync', type=str, default='n',
