@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.metrics.cluster import adjusted_rand_score
 
 import Correlation_Clustering
-
+import torch
 
 def agent_language_map(env, a):
     V = {}
@@ -19,7 +19,6 @@ def agent_language_map(env, a):
 
     for perception_index in perception_indices:
         V[perception_index] = terms[perception_index].item()
-
     return list(V.values())
 
 def compute_gibson_cost2( env, a):
@@ -178,3 +177,35 @@ def mean_rand_index(ce_a, ce_b=None):
 
 
         return mean, ci
+
+from scipy.stats import ttest_ind
+def check_hypothesis(ce_a, ce_b, ce_c=None):
+    alpha = 0.05
+    x_1 = helper_hypo(ce_a, ce_c)
+    x_2 = helper_hypo(ce_b, ce_c)
+    # Welch's t-test
+    t_stat, p_value = ttest_ind(x_1, x_2, equal_var=True, nan_policy='omit')
+    return t_stat, p_value
+
+
+def helper_hypo(ce_a, ce_b=None):
+    if ce_b is None:
+        skip_trace = 1
+        ce_b = ce_a
+    else:
+        skip_trace = 0
+        # make sure ce_is the longest
+        if len(ce_b) > len(ce_a):
+            ce = ce_b
+            ce_b = ce_a
+            ce_a = ce
+    ar = []
+    for i in range(skip_trace, len(ce_a)):
+        for j in range(0, min([i + 1, len(ce_b)]) - skip_trace):
+            # debug code: print('i={},j={}'.format(i, j))
+            ar += [adjusted_rand_score(ce_a[i], ce_b[j])]
+    if len(ar) >= 1:
+        x = np.array(ar)
+        return x
+    else:
+        return float('nan')

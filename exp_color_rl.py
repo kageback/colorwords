@@ -105,7 +105,10 @@ def visualize(exp):
                   for noise in exp.param_ranges['perception_noise']]).reshape(-1)
 
     n = exp.param_ranges['perception_noise']
-    n = n + (n/2)
+    print(n)
+    print(len(n))
+    n = np.asarray(n)
+    n = n + (n/2.0)
     n[-1] = 600
     plt.hist2d(x, y, bins=[n, range(y.min(), y.max()+1)], cmap=plt.cm.BuPu)
     plt.xlabel('environment $\sigma_e^2$')
@@ -116,15 +119,15 @@ def visualize(exp):
     plt.savefig(fig_name, dpi=300, compression="tiff_lzw")
 
     # term usage across different level of noise
-    # viz.plot_with_conf(exp, 'term_usage', 'com_noise', x_label='com $\sigma^2$')
-    # viz.plot_lines_with_conf(exp, 'term_usage', 'com_noise', 'perception_noise', x_label='com $\sigma^2$',
-    #                              z_label='perception $\sigma^2$')
+    viz.plot_with_conf(exp, 'term_usage', 'com_noise', x_label='com $\sigma^2$')
+    viz.plot_lines_with_conf(exp, 'term_usage', 'com_noise', 'perception_noise', x_label='com $\sigma^2$',
+                                 z_label='perception $\sigma^2$')
 
-    #    viz.plot_lines_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise', x_label='perception $\sigma^2$',
-    #                         z_label='com $\sigma^2$', )
+    viz.plot_lines_with_conf(exp, 'term_usage', 'perception_noise', 'com_noise', x_label='perception $\sigma^2$',
+                            z_label='com $\sigma^2$', )
 
-    # viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', measure_label='KL Loss', z_label='com $\sigma^2$')
-    # viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', measure_label='Well-formedness', z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp, 'regier_cost', 'term_usage', 'com_noise', measure_label='KL Loss', z_label='com $\sigma^2$')
+    viz.plot_with_conf2(exp, 'wellformedness', 'term_usage', 'com_noise', measure_label='Well-formedness', z_label='com $\sigma^2$')
 
 
 def print_tables(exp):
@@ -151,10 +154,17 @@ def print_tables(exp):
     for t in term_usage_to_analyse:
         agent_mean_rand_vs_term_usage += [evaluate.mean_rand_index(agent_maps[agent_term_usage == t])]
 
-        a = np.array([evaluate.mean_rand_index(maps_vs_noise[noise_i][term_usage_vs_noise[noise_i] == t])
-                      for noise_i in range(len(maps_vs_noise))])
+ #       a = np.array([evaluate.mean_rand_index(maps_vs_noise[noise_i][term_usage_vs_noise[noise_i] == t])
+ #                     for noise_i in range(len(maps_vs_noise))])
 
-        agent_mean_rand_over_noise_groups_vs_term_usage += [a[~np.isnan(a)].mean()]
+ #       a[a=='nan'] = np.nan
+ #       a_2= []
+ #       for element in a:
+ #           if not element == np.nan:
+ #               a_2.append(element)
+
+        # agent_mean_rand_over_noise_groups_vs_term_usage += [a[~np.isnan(a)].mean()]
+  #      agent_mean_rand_over_noise_groups_vs_term_usage += a_2
 
         human_mean_rand_vs_term_usage += [evaluate.mean_rand_index(human_maps[human_term_usage == t])]
 
@@ -198,9 +208,9 @@ def main(args):
 
 
     # Visualize experiment
-    visualize(exp)
+    # visualize(exp)
 
-    #print_tables(exp)
+    print_tables(exp)
 
 
 if __name__ == "__main__":

@@ -68,14 +68,14 @@ class BaseGame:
 
     def evaluate(self, env, agent_a):
         V = evaluate.agent_language_map(env, agent_a)
-        self.gibson_cost += [evaluate.compute_gibson_cost2(env, a=agent_a)[1]]
-        self.regier_cost += [evaluate.communication_cost_regier(env, V=V)[0]]
-        self.wellformedness += [evaluate.wellformedness(env, V=V)[0]]
+#        self.gibson_cost += [evaluate.compute_gibson_cost2(env, a=agent_a)[1]]
+#        self.regier_cost += [evaluate.communication_cost_regier(env, V=V)[0]]
+#        self.wellformedness += [evaluate.wellformedness(env, V=V)[0]]
         self.term_usage += [evaluate.compute_term_usage(V=V)]
-        print('terms = {:2d}, gib = {:.3f}, reg = {:.3f}, well = {:.3f}'.format(self.term_usage[-1],
-                                                                                self.gibson_cost[-1],
-                                                                                self.regier_cost[-1],
-                                                                                self.wellformedness[-1]))
+#        print('terms = {:2d}, gib = {:.3f}, reg = {:.3f}, well = {:.3f}'.format(self.term_usage[-1],
+#                                                                                self.gibson_cost[-1],
+#                                                                                self.regier_cost[-1],
+#                                                                                self.wellformedness[-1]))
 
         env.plot_with_colors(V, save_to_path='{}evo_map-{}_terms.png'.format(self.log_path, self.term_usage[-1]))
 
@@ -120,10 +120,17 @@ class BaseGame:
     @staticmethod
     def reduce_maps(name, exp, reduce_method='mode'):
         maps = exp.get_flattened_results(name)
-        np_maps = np.array([list(map.values()) for map in maps])
+        if isinstance(maps, list):
+            np_maps = np.array([list(map) for map in maps])
+        else:
+            np_maps = np.array([list(map.values()) for map in maps])
         if reduce_method == 'mode':
-            np_mode_map = stats.mode(np_maps).mode[0]
-            res = {k: np_mode_map[k] for k in maps[0].keys()}
+            if isinstance(maps, list):
+                np_mode_map = stats.mode(np_maps).mode[0]
+                res = {k: np_mode_map[k] for k in range(len(maps[0]))}
+            else:
+                np_mode_map = stats.mode(np_maps).mode[0]
+                res = {k: np_mode_map[k] for k in maps[0].keys()}
         else:
             raise ValueError('unsupported reduce function: ' + reduce_method)
         return res
@@ -131,14 +138,17 @@ class BaseGame:
     @staticmethod
     def compute_ranges(V):
         lex = {}
+        #for n in V.keys():
         for n in range(len(V)):
-            if not V[n] in lex.keys():
+            #print(n)
+            # start from 1 not 0
+            if not V[n] in list(lex.keys()):
                 lex[V[n]] = [n]
             else:
                 lex[V[n]] += [n]
         ranges = {}
         for w in lex.keys():
-            ranges[w] = []
+            ranges[str(w)] = []
             state = 'out'
             for n in lex[w]:
                 if state == 'out':
@@ -147,11 +157,13 @@ class BaseGame:
                     state = 'in'
                 elif state == 'in':
                     if prev + 1 != n:
-                        ranges[w] += [(range_start, prev)]
+                        ranges[str(w)] += [(range_start+1, prev+1)]
                         range_start = n
                     prev = n
-            ranges[w] += [(range_start, prev)]
+            ranges[str(w)] += [(range_start+1, prev+1)]
         return ranges
+
+
 
     def print_status(self, loss):
         print("Loss %f Naive perplexity %f" %
@@ -285,7 +297,6 @@ class OneHotChannelGame(BaseGame):
               )
         self.sum_reward = 0
 
-
 class DiscreteGame(BaseGame):
     def __init__(self,
                  reward_func='regier_reward',
@@ -299,6 +310,10 @@ class DiscreteGame(BaseGame):
                  evaluate_interval=0,
                  log_path='',
                  perception_dim=3,
+                 sender_entropy=0,
+                 reciever_entropy=0,
+                 learning_rate=0.001,
+                 optimizer='Adam',
                  loss_type='CrossEntropyLoss'):
         super().__init__(max_epochs, batch_size, print_interval, evaluate_interval, log_path)
         self.reward_func = reward_func
@@ -307,16 +322,49 @@ class DiscreteGame(BaseGame):
         self.msg_dim = msg_dim
         self.perception_noise = perception_noise
         self.perception_dim = perception_dim
-
+        self.sender_entropy = sender_entropy
+        self.reciever_entropy = reciever_entropy
+        self.learning_rate = learning_rate
+        self.optimizer = optimizer
         self.loss_type = loss_type
 
         self.sum_reward = 0
         self.n = 0
         self.baseline = 0
         self.criterion_receiver = torch.nn.CrossEntropyLoss()
+
+    def play(self, env, agent_a, agent_b):
+        agent_a = th.cuda(agent_a)
+        agent_b = th.cuda(agent_b)
+
+        if self.optimizer == 'RMSprop':
+            optimizer = optim.RMSprop(list(agent_a.parameters()) + list(agent_b.parameters()), lr=self.learning_rate)
+        elif self.optimizer == 'Adam':
+            optimizer = optim.Adam(list(agent_a.parameters()) + list(agent_b.parameters()), lr=self.learning_rate)
+        else:
+            optimizer = optim.SGD(list(agent_a.parameters()) + list(agent_b.parameters()), lr=self.learning_rate)
+        for i in range(self.max_epochs):
+            optimizer.zero_grad()
+
+            color_codes, colors = env.mini_batch(batch_size=self.batch_size)
+            color_codes = th.long_var(color_codes)
+            colors = th.float_var(colors)
+
+            loss = self.communication_channel(env, agent_a, agent_b, color_codes, colors)
+
+            loss.backward()
+            optimizer.step()
+
+            # printing status
+            if self.print_interval != 0 and ((i+1) % self.print_interval == 0):
+                self.print_status(loss)
+
+            if self.evaluate_interval != 0 and ((i+1) % self.evaluate_interval == 0):
+                self.evaluate(env, agent_a)
+        return agent_a.cpu(), agent_b.cpu()
+
     def communication_channel(self, env, agent_a, agent_b, target, perception):
         # add perceptual noise
-
         noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
                                     torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
         perception = perception + noise
@@ -340,8 +388,9 @@ class DiscreteGame(BaseGame):
             CIELAB_guess = env.chip_index2CIELAB(guess.data)
             reward = env.regier_reward(perception, CIELAB_guess, bw_boost=self.bw_boost)
         elif self.reward_func == 'abs_dist':
-            diff = torch.abs(target - guess.unsqueeze(dim=1))
-            reward = 1-(diff.float()/100) #1-(diff.float()/50)
+            diff = torch.abs(target - (guess.unsqueeze(dim=1) + 1))
+            #reward = 1-(diff.float()/guess_probs.shape[-1]) #1-(diff.float()/50)
+            reward = - diff.float()**2
 
         self.sum_reward += reward.sum()
 
@@ -349,7 +398,8 @@ class DiscreteGame(BaseGame):
         if self.loss_type =='REINFORCE':
             sender_loss = (-msg_dist.log_prob(msg) * (reward - self.baseline)).mean()
             reciever_loss = (-guess_dist.log_prob(guess) * (reward - self.baseline)).mean()
-            loss = reciever_loss + sender_loss
+            entropy_regularization = -(self.sender_entropy * msg_dist.entropy().mean() + self.reciever_entropy * guess_dist.entropy().mean())
+            loss = reciever_loss + sender_loss + entropy_regularization
             # update baseline
             self.n += 1
             self.baseline += (reward.detach().mean() - self.baseline) / self.n
@@ -357,6 +407,240 @@ class DiscreteGame(BaseGame):
             loss = self.criterion_receiver(guess_logits, target.squeeze())
 
         return loss
+
+    def print_status(self, loss):
+
+        print("Loss %f Average reward %f" %
+              (loss, self.sum_reward / (self.print_interval * self.batch_size))
+              )
+        self.sum_reward = 0
+
+class GumbelSoftmaxGame(BaseGame):
+    def __init__(self,
+                 reward_func='regier_reward',
+                 bw_boost=0,
+                 com_noise=0,
+                 msg_dim=11,
+                 max_epochs=1000,
+                 perception_noise=0,
+                 batch_size=100,
+                 print_interval=1000,
+                 evaluate_interval=0,
+                 log_path='',
+                 perception_dim=3,
+                 sender_entropy=0,
+                 reciever_entropy=0,
+                 learning_rate=0.001,
+                 tau=1,
+                 optimizer='Adam',
+                 loss_type='CrossEntropyLoss'):
+        super().__init__(max_epochs, batch_size, print_interval, evaluate_interval, log_path)
+        self.reward_func = reward_func
+        self.bw_boost = bw_boost
+        self.com_noise = com_noise
+        self.msg_dim = msg_dim
+        self.perception_noise = perception_noise
+        self.perception_dim = perception_dim
+        self.sender_entropy = sender_entropy
+        self.reciever_entropy = reciever_entropy
+        self.learning_rate = learning_rate
+        self.optimizer = optimizer
+        self.loss_type = loss_type
+        self.tau = tau
+
+        self.sum_reward = 0
+        self.n = 0
+        self.baseline = 0
+        self.criterion_receiver = torch.nn.CrossEntropyLoss()
+    def play(self, env, agent_a, agent_b):
+        agent_a = th.cuda(agent_a)
+        agent_b = th.cuda(agent_b)
+
+        if self.optimizer == 'RMSprop':
+            optimizer = optim.RMSprop(list(agent_a.parameters()) + list(agent_b.parameters()), lr=self.learning_rate)
+        elif self.optimizer == 'Adam':
+            optimizer = optim.Adam(list(agent_a.parameters()) + list(agent_b.parameters()), lr=self.learning_rate)
+        else:
+            optimizer = optim.SGD(list(agent_a.parameters()) + list(agent_b.parameters()), lr=self.learning_rate)
+        for i in range(self.max_epochs):
+            optimizer.zero_grad()
+
+            color_codes, colors = env.mini_batch(batch_size=self.batch_size)
+            color_codes = th.long_var(color_codes)
+            colors = th.float_var(colors)
+
+            loss = self.communication_channel(env, agent_a, agent_b, color_codes, colors)
+
+            loss.backward()
+            optimizer.step()
+
+            # printing status
+            if self.print_interval != 0 and ((i+1) % self.print_interval == 0):
+                self.print_status(loss)
+
+            if self.evaluate_interval != 0 and ((i+1) % self.evaluate_interval == 0):
+                self.evaluate(env, agent_a)
+        return agent_a.cpu(), agent_b.cpu()
+
+    def communication_channel(self, env, agent_a, agent_b, target, perception):
+        # add perceptual noise
+        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
+                                    torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
+        perception = perception + noise
+        # generate message
+        msg_logits = agent_a(perception=perception)
+        # add communication noise
+        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.msg_dim),
+                                    torch.ones(self.batch_size, self.msg_dim) * self.com_noise).sample())
+        msg = F.gumbel_softmax(msg_logits + noise, tau=self.tau, hard=True, dim=1)
+        # interpret message and sample a guess
+        guess_logits = agent_b(msg=msg)
+        guess_probs = F.softmax(guess_logits, dim=1)
+        guess_dist = Categorical(guess_probs)
+        guess = guess_dist.sample()
+
+        #compute reward
+        if self.reward_func == 'regier_reward':
+            CIELAB_guess = env.chip_index2CIELAB(guess.data)
+            reward = env.regier_reward(perception, CIELAB_guess, bw_boost=self.bw_boost)
+        elif self.reward_func == 'abs_dist':
+            diff = torch.abs(target - (guess.unsqueeze(dim=1) + 1))
+            reward = 1-(diff.float()/guess_probs.shape[-1]) #1-(diff.float()/50)
+            #reward = - diff.float()**2
+
+        self.sum_reward += reward.sum()
+
+        # compute loss and update model
+        if self.loss_type =='REINFORCE':
+            # Loss differentable only have to consider reciever_loss
+            reciever_loss = (-guess_dist.log_prob(guess) * (reward - self.baseline)).mean()
+            entropy_regularization = -(self.reciever_entropy * guess_dist.entropy().mean())
+            loss = reciever_loss + entropy_regularization
+            # update baseline
+            self.n += 1
+            self.baseline += (reward.detach().mean() - self.baseline) / self.n
+        elif self.loss_type == 'CrossEntropyLoss':
+            loss = self.criterion_receiver(guess_logits, target.squeeze())
+
+        return loss
+
+    def print_status(self, loss):
+
+        print("Loss %f Average reward %f" %
+              (loss, self.sum_reward / (self.print_interval * self.batch_size))
+              )
+        self.sum_reward = 0
+
+
+
+class GaussianGame(BaseGame):
+    def __init__(self,
+                 reward_func='regier_reward',
+                 bw_boost=0,
+                 com_noise=0,
+                 msg_dim=11,
+                 max_epochs=1000,
+                 perception_noise=0,
+                 batch_size=100,
+                 print_interval=1000,
+                 evaluate_interval=0,
+                 log_path='',
+                 perception_dim=3,
+                 sender_entropy=0,
+                 reciever_entropy=0,
+                 learning_rate=0.001,
+                 optimizer='Adam',
+                 loss_type='REINFORCE'):
+        super().__init__(max_epochs, batch_size, print_interval, evaluate_interval, log_path)
+        self.reward_func = reward_func
+        self.bw_boost = bw_boost
+        self.com_noise = com_noise
+        self.msg_dim = msg_dim
+        self.perception_noise = perception_noise
+        self.perception_dim = perception_dim
+        self.sender_entropy = sender_entropy
+        self.reciever_entropy = reciever_entropy
+        self.learning_rate = learning_rate
+        self.optimizer = optimizer
+        self.loss_type = loss_type
+
+        self.sum_reward = 0
+        self.n = 0
+        self.baseline = 0
+        self.criterion_receiver = torch.nn.CrossEntropyLoss()
+
+    def play(self, env, agent_a, agent_b):
+        agent_a = th.cuda(agent_a)
+        agent_b = th.cuda(agent_b)
+
+        if self.optimizer == 'RMSprop':
+            optimizer = optim.RMSprop(list(agent_a.parameters()) + list(agent_b.parameters()), lr=self.learning_rate)
+        elif self.optimizer == 'Adam':
+            optimizer = optim.Adam(list(agent_a.parameters()) + list(agent_b.parameters()), lr=self.learning_rate)
+        else:
+            optimizer = optim.SGD(list(agent_a.parameters()) + list(agent_b.parameters()), lr=self.learning_rate)
+        for i in range(self.max_epochs):
+            optimizer.zero_grad()
+
+            color_codes, colors = env.mini_batch(batch_size=self.batch_size)
+            color_codes = th.long_var(color_codes)
+            colors = th.float_var(colors)
+
+            loss = self.communication_channel(env, agent_a, agent_b, color_codes, colors)
+
+            loss.backward()
+            optimizer.step()
+
+            # printing status
+            if self.print_interval != 0 and ((i+1) % self.print_interval == 0):
+                self.print_status(loss)
+
+            if self.evaluate_interval != 0 and ((i+1) % self.evaluate_interval == 0):
+                self.evaluate(env, agent_a)
+        return agent_a.cpu(), agent_b.cpu()
+
+    def communication_channel(self, env, agent_a, agent_b, target, perception):
+        # add perceptual noise
+        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.perception_dim),
+                                    torch.ones(self.batch_size, self.perception_dim) * self.perception_noise).sample())
+        perception = perception + noise
+        # generate message
+        msg_logits = agent_a(perception=perception)
+        # add communication noise
+        # msg_probs = F.gumbel_softmax(msg_logits, tau=2 / 3)
+        noise = th.float_var(Normal(torch.zeros(self.batch_size, self.msg_dim),
+                                    torch.ones(self.batch_size, self.msg_dim) * self.com_noise).sample())
+        msg_probs = F.softmax(msg_logits + noise, dim=1)
+        msg_dist = Categorical(msg_probs)
+        msg = msg_dist.sample()
+        # interpret message and sample a guess
+        guess_mu, guess_std = agent_b(msg=msg)
+        guess_dist = Normal(guess_mu, guess_std)
+        guess = guess_dist.sample()
+
+        #compute reward
+        if self.reward_func == 'regier_reward':
+            CIELAB_guess = env.chip_index2CIELAB(guess.data)
+            reward = env.regier_reward(perception, CIELAB_guess, bw_boost=self.bw_boost)
+        elif self.reward_func == 'abs_dist':
+            diff = torch.abs(target - (guess.unsqueeze(dim=1)))
+            reward = 1-(diff.float()/100) #1-(diff.float()/50)
+            #reward = - diff.float()**2
+
+        self.sum_reward += reward.sum()
+
+        # compute loss and update model
+        if self.loss_type =='REINFORCE':
+            sender_loss = (-msg_dist.log_prob(msg) * (reward - self.baseline)).mean()
+            reciever_loss = (-guess_dist.log_prob(guess) * (reward - self.baseline)).mean()
+            entropy_regularization = -(self.sender_entropy * msg_dist.entropy().mean() + self.reciever_entropy * guess_dist.entropy().mean())
+            loss = reciever_loss + sender_loss + entropy_regularization
+            # update baseline
+            self.n += 1
+            self.baseline += (reward.detach().mean() - self.baseline) / self.n
+
+        return loss
+
     def print_status(self, loss):
 
         print("Loss %f Average reward %f" %
