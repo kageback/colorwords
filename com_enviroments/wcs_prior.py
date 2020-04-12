@@ -28,6 +28,7 @@ class WCS_Prior_Enviroment(BaseEnviroment):
         # http://www1.icsi.berkeley.edu/wcs/data/20041016/txt/dict.txt
         self.color_chips = pd.read_csv(wcs_path + prior, sep='\t')
         self.prior = self.color_chips['prob']
+        self.full_prior = (np.sum(self.prior > 0) == 330)
         self.cielab_map = th.float_var(self.color_chips[['L*', 'a*', 'b*']].values)
 
         self.term = pd.read_csv(wcs_path + 'term.txt', sep='\t', names=['lang_num', 'spkr_num', 'chip_num', 'term_abrev'])
@@ -101,6 +102,12 @@ class WCS_Prior_Enviroment(BaseEnviroment):
         return self.color_chips.index.values, self.cielab_map
 
     def mini_batch(self, batch_size = 10):
+        if not self.full_prior:
+            if np.random.uniform() < 0.05:
+                # Sample uniformly
+                batch = self.color_chips.sample(n=batch_size, replace=True)
+                return batch.index.values, batch[['L*', 'a*', 'b*']].values
+
         batch = self.color_chips.sample(n=batch_size, replace=True, weights=self.prior)
         return batch.index.values, batch[['L*', 'a*', 'b*']].values
 
