@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
+import pandas as pd
+from copy import deepcopy
 
 class PopulationGraph:
     def __init__(self, agents=[], n_clusters=1, cluster_connections=None, cluster_distribution=None, epsilon=0.01, csv=None):
@@ -37,18 +39,17 @@ class PopulationGraph:
         return graph, labels
 
     def generate_graph_from_csv(self, csv):
-        pass
+        self.df = pd.read_csv(csv)
+        self.graph = csv.values
 
     def get_graph(self):
         return self.graph
 
-    def sample_neighbor(self, agent):
-        if self.cluster_distribution is None:
-            r = np.random.uniform()
-            if r < self.epsilon:
-                return np.random.randint(0, self.n_agents)
-        else:
-            return np.random.choice(np.arange(self.n_agents), p=self.graph[agent, :])
+    def get_agent(self, i):
+        return deepcopy(self.agents[i])
+
+    def sample_neighbor(self, agent, batch_size=1):
+        return np.random.choice(np.arange(self.n_agents), p=self.graph[agent, :], size=batch_size).tolist()
 
 
     def draw_pairs(self, n):
@@ -74,5 +75,6 @@ class PopulationGraph:
             plt.show()
         else:
             plt.savefig(save_string)
+
 
 

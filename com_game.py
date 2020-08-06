@@ -398,8 +398,8 @@ class DiscreteGame(BaseGame):
         if self.loss_type =='REINFORCE':
             sender_loss = (-msg_dist.log_prob(msg) * (reward - self.baseline)).mean()
             reciever_loss = (-guess_dist.log_prob(guess) * (reward - self.baseline)).mean()
-            entropy_regularization = -(self.sender_entropy * msg_dist.entropy().mean() + self.reciever_entropy * guess_dist.entropy().mean())
-            loss = reciever_loss + sender_loss + entropy_regularization
+           # entropy_regularization = -(self.sender_entropy * msg_dist.entropy().mean() + self.reciever_entropy * guess_dist.entropy().mean())
+            loss = reciever_loss + sender_loss
             # update baseline
             self.n += 1
             self.baseline += (reward.detach().mean() - self.baseline) / self.n

@@ -7,9 +7,11 @@ import viz
 import evaluate
 from gridengine.pipeline import Experiment
 import com_enviroments
-import agents
+from agents import SoftmaxAgent
 import exp_shared
 import matplotlib.pyplot as plt
+from graph import PopulationGraph
+from population_game import PopulationGame
 
 def run(host_name='local', pipeline=''):
     if pipeline != '':
@@ -19,20 +21,21 @@ def run(host_name='local', pipeline=''):
     queue = exp_shared.create_queue(host_name)
     queue.sync('.', '.', exclude=['pipelines/*', 'fig/*', 'old/*', 'cogsci/*'], sync_to=sge.SyncTo.REMOTE,
                recursive=True)
-    exp = Experiment(exp_name='rl',
+    exp = Experiment(exp_name='rl_population',
                      fixed_params=[('loss_type', 'REINFORCE'),
                                    ('bw_boost', 1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 25000),  # 10000
+                                   ('max_epochs', 3000),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
                                    ('target_dim', 330),
                                    ('print_interval', 1000),
                                    ('msg_dim', 50)],
-                     param_ranges=[('avg_over', range(1)),  # 50
-                                   ('perception_noise',[0]),  # np.logspace(0, 9, num=10, base=2)) [0, 10, 20, 30, 40, 50,  80, 120, 160, 320]), [0, 25, 50, 100],[0, 10, 20, 40, 80, 160, 320]
-                                   ('com_noise', [0])],  # np.logspace(-3, 6, num=10, base=2)   [0, 0.1, 0.3, 0.5, 1] [0, 0.5, 3, 10, 20, 50]
+                     param_ranges=[('avg_over', range(2)),
+                                   ('perception_noise',[0]),
+                                   ('com_noise', [0]),
+                                   ('n_agents', [2, 4])],
                      queue=queue)
     queue.sync(exp.pipeline_path, exp.pipeline_path, sync_to=sge.SyncTo.REMOTE, recursive=True)
 
@@ -41,27 +44,23 @@ def run(host_name='local', pipeline=''):
     for (params_i, params_v) in exp:
         print('Scheduled %d experiments out of %d' % (exp_i, len(list(exp))))
         exp_i += 1
-
-        agent_a = agents.SoftmaxAgent(msg_dim=exp.fixed_params['msg_dim'],
+        agent_list = []
+        for _ in range(params_v[exp.axes['n_agents']]):
+            agent_list.append(SoftmaxAgent(msg_dim=exp.fixed_params['msg_dim'],
                                       hidden_dim=exp.fixed_params['hidden_dim'],
                                       color_dim=exp.fixed_params['target_dim'],
-                                      perception_dim=exp.fixed_params['perception_dim'])
-        agent_b = agents.SoftmaxAgent(msg_dim=exp.fixed_params['msg_dim'],
-                                      hidden_dim=exp.fixed_params['hidden_dim'],
-                                      color_dim=exp.fixed_params['target_dim'],
-                                      perception_dim=exp.fixed_params['perception_dim'])
+                                      perception_dim=exp.fixed_params['perception_dim']))
 
-        game = com_game.DiscreteGame(com_noise=params_v[exp.axes['com_noise']],
-                                         msg_dim=exp.fixed_params['msg_dim'],
-                                         max_epochs=exp.fixed_params['max_epochs'],
-                                         perception_noise=params_v[exp.axes['perception_noise']],
-                                         batch_size=exp.fixed_params['batch_size'],
-                                         print_interval=exp.fixed_params['print_interval'],
-                                         loss_type=exp.fixed_params['loss_type'],
-                                         bw_boost=exp.fixed_params['bw_boost'])
 
-        agent_a_trained = exp.run(game.play, env, agent_a, agent_b).result()
-        exp.set_result('agent_a', params_i, agent_a_trained)
+        graph = PopulationGraph(agents=agent_list)
+        game = PopulationGame(max_epochs=exp.fixed_params['max_epochs'],
+                                        perception_noise=params_v[exp.axes['perception_noise']],
+                                        batch_size=exp.fixed_params['batch_size'],
+                                        print_interval=exp.fixed_params['print_interval'],
+                                        perception_dim=exp.fixed_params['perception_dim'])
+
+        agent_a = exp.run(game.play, graph, env).result()
+        exp.set_result('agent_a', params_i, agent_a)
 
 
 
@@ -86,34 +85,31 @@ def analyse(exp):
 def visualize(exp):
     print('Visualize results')
 
-    viz.plot_with_conf(exp, 'term_usage', 'com_noise', x_label='communication $\sigma^2$')
+    #viz.plot_with_conf(exp, 'term_usage', 'com_noise', x_label='communication $\sigma^2$')
+    viz.plot_with_conf(exp, 'term_usage', 'n_agents', x_label='Population size')
+    viz.plot_with_conf(exp, 'gibson_cost', 'n_agents', x_label='Population size')
+    viz.plot_with_conf(exp, 'regier_cost', 'n_agents', x_label='Population size')
 
     viz.plot_with_conf2(exp,
-                         'gibson_cost', 'term_usage', 'com_noise',
+                         'gibson_cost', 'term_usage', 'n_agents',
                          measure_label='Expected surprise',
                          group_by_measure_label='Color terms used',
-                         ylim=[5.75, 7.25], xlim=[3, 11],
-                         z_label='communication $\sigma^2$')
+                         z_label='Population size')
+
+
+    viz.plot_with_conf2(exp,
+                         'wellformedness', 'term_usage', 'n_agents',
+                         measure_label='Wellformedness',
+                         group_by_measure_label='Color terms used',
+                         z_label='Population size')
+
+    viz.plot_with_conf2(exp,
+                         'regier_cost', 'term_usage', 'n_agents',
+                         measure_label='KL loss',
+                         group_by_measure_label='Color terms used',
+                         z_label='Population size')
 
     viz.plot_with_conf(exp, 'term_usage', 'perception_noise', x_label='environment $\sigma^2$')
-
-
-    # plot 2d histogram
-    plt.figure()
-    y = exp.reshape('term_usage', as_function_of_axes=['perception_noise']).reshape(-1)
-    x = np.array([[noise for _ in exp.param_ranges['avg_over']]
-                  for noise in exp.param_ranges['perception_noise']]).reshape(-1)
-
-    n = exp.param_ranges['perception_noise']
-    n = n + (n/2)
-    n[-1] = 600
-    plt.hist2d(x, y, bins=[n, range(y.min(), y.max()+1)], cmap=plt.cm.BuPu)
-    plt.xlabel('environment $\sigma_e^2$')
-    plt.ylabel('term usage')
-    plt.colorbar()
-    fig_name = exp.pipeline_path + '/fig_term_histogram.png.asdf.tiff'
-
-    plt.savefig(fig_name, dpi=300, compression="tiff_lzw")
 
     # term usage across different level of noise
     # viz.plot_with_conf(exp, 'term_usage', 'com_noise', x_label='com $\sigma^2$')
@@ -198,9 +194,9 @@ def main(args):
 
 
     # Visualize experiment
-    #visualize(exp)
+    visualize(exp)
 
-    print_tables(exp)
+    #print_tables(exp)
 
 
 if __name__ == "__main__":
