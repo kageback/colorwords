@@ -38,7 +38,7 @@ class WCS_Enviroment(BaseEnviroment):
                                   how='inner',
                                   on=['lang_num', 'term_abrev'])
 
-        self.human_mode_maps = self.compute_human_mode_maps(wcs_path)
+        # self.human_mode_maps = self.compute_human_mode_maps(wcs_path)
 
         self.plot_with_colors(V=None, save_to_path = wcs_path + 'mode_maps/empty_map.png')
 

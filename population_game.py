@@ -97,9 +97,10 @@ class PopulationGame:
             pop_reward = pop_reward / graph.n_agents
 
             if t != 0 and t % self.print_interval == 0:
+                # Wrong dont do for a single batch, do for all batches in a print interval
                 print('Average reward/conversation : {0}, Total loss : {1}'.format(pop_reward, loss))
 
-        return deepcopy(graph.agents[0])
+        return deepcopy(graph.agents)
 
 
 

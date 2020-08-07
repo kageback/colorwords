@@ -25,7 +25,7 @@ def run(host_name='local', pipeline=''):
                      fixed_params=[('loss_type', 'REINFORCE'),
                                    ('bw_boost', 1),
                                    ('env', 'wcs'),
-                                   ('max_epochs', 3000),  # 10000
+                                   ('max_epochs', 300),  # 10000
                                    ('hidden_dim', 20),
                                    ('batch_size', 100),
                                    ('perception_dim', 3),
@@ -194,7 +194,7 @@ def main(args):
 
 
     # Visualize experiment
-    visualize(exp)
+    #visualize(exp)
 
     #print_tables(exp)
 
